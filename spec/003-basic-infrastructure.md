@@ -66,6 +66,5 @@ None. The intent's questions are answered and closed:
 
 ## Flagged concerns
 
-- **Pages availability.** GitHub Pages on a private repository needs a paid GitHub plan, and a Pages site may be publicly reachable depending on plan and settings. I could not check this repo's visibility or plan. If the repo is private on a free plan, deployment (requirement 5) cannot be satisfied as written. The data stays in each visitor's own browser either way, but the app itself would be public.
 - **Origin is tied to the repo name.** localStorage is bound to the origin, and the Pages URL includes the repo name. Renaming or moving the repo changes the origin and strands existing data. The URL should be treated as fixed before real data is stored; this spec records it but cannot prevent a rename.
 - **Local copy is a different origin.** `npm run dev` and the hosted site use different origins, so data entered in one will not appear in the other. Worth knowing, not a defect.
