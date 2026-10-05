@@ -33,13 +33,6 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build on every pu
 
 https://amjones-scottlogic.github.io/AnthropicSDLCExample/
 
-## One-off repository setup (manual)
-
-These are settings, not code:
-
-1. Settings, Pages: set Source to "GitHub Actions".
-2. Settings, Rules: protect `main`, require the `ci` status check, and allow the repository admin to bypass (so a broken pipeline never locks the repo). Enable this after the first green CI run so `ci` can be selected.
-
 ## Status
 
 Build, test, CI and deployment are set up. No todo features yet.
