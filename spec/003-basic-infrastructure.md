@@ -1,5 +1,5 @@
 # Spec: Basic infrastructure for building and deploying the todo app
-Intent: [intent/003-basic-infrastructure.md](../intent/003-basic-infrastructure.md). Status: draft.
+Intent: [intent/003-basic-infrastructure.md](../intent/003-basic-infrastructure.md). Status: approved.
 
 ## Summary
 A working base for the project so the todo app (intent 001) can be built, checked and published: a React application skeleton, test tooling, a CI workflow that builds and tests every change, and automated deployment to GitHub Pages. It exists because the repo has no framework, tests, CI or hosting yet. It adds no todo features.
