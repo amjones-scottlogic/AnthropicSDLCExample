@@ -52,13 +52,4 @@ jobs:
         if: steps.key.outputs.present == 'true'
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Run the write-spec skill.
-            Manual run: use intent number "${{ inputs.intent }}".
-            Triggered by a merge to main (an intent has just landed): find files in
-            intent/ with Status accepted that have no matching file in spec/, and
-            write a spec for each.
-            If the intent is not accepted, or there is nothing to do, stop and say so.
-            Never commit to main. Commit each spec on a new branch named
-            spec/NNN-short-title, push that branch, and open a pull request from it
-            into main. Summarise the flagged concerns first in the PR description.
+          prompt: /write-spec intent ${{ inputs.intent || 'the accepted intent changed in this push' }}
