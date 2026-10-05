@@ -29,7 +29,7 @@ CI runs lint, typecheck, test and build on every PR; make all four pass before a
 
 ## Architecture
 
-- `src/`: the React app (`main.tsx` entry, `App.tsx` root).
+- `src/`: the React app (`main.tsx` entry, `App.tsx` root), organised by domain. Follow the `src-structure` skill when adding or moving files.
 - `intent/`, `spec/`, `plan/`: SDLC artefacts, numbered `NNN-*.md` so each intent, spec and plan pair up.
 - `.claude/`: skills and hooks (`push-gate`, `plan-sync`).
 - `dist/` is build output; never edit it.
