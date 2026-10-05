@@ -16,8 +16,23 @@ A browser-only todo app built with React, created as a hands-on exercise to try 
 
 ## Getting started
 
-The app has not been scaffolded yet. Once it has, setup instructions will go here.
+Requires Node 22 and npm.
+
+```
+npm install        # install dependencies
+npm run dev        # serve locally with hot reload
+npm test           # run the test suite once
+npm run lint       # ESLint, including jsx-a11y accessibility rules
+npm run typecheck  # TypeScript strict-mode check
+npm run build      # build static files into dist/
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build on every pull request and push to `main`. A push to `main` that passes then deploys to GitHub Pages.
+
+## Deployed app
+
+https://amjones-scottlogic.github.io/AnthropicSDLCExample/
 
 ## Status
 
-Early setup: repository initialised.
+Build, test, CI and deployment are set up. No todo features yet.
