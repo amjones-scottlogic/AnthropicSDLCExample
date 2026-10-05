@@ -33,8 +33,6 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build on every pu
 
 https://amjones-scottlogic.github.io/AnthropicSDLCExample/
 
-The app stores data in localStorage, which is tied to the site's origin. Renaming or moving the repository changes the URL and strands existing data, and `npm run dev` (localhost) is a different origin from the hosted site. The Vite `base` path in `vite.config.ts` must match the repository name.
-
 ## One-off repository setup (manual)
 
 These are settings, not code:
@@ -44,4 +42,4 @@ These are settings, not code:
 
 ## Status
 
-Infrastructure in place (spec 003). No todo features yet (intent 001).
+Build, test, CI and deployment are set up. No todo features yet.

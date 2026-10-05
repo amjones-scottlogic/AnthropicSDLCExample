@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
-// Served from https://amjones-scottlogic.github.io/AnthropicSDLCExample/
+// GitHub Pages serves a project site at /<repo>/, so base must match the repository name.
 export default defineConfig({
   base: '/AnthropicSDLCExample/',
   plugins: [react()],

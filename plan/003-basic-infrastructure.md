@@ -74,4 +74,4 @@ None.
 2026-10-05:
 - **Pinned `typescript@~6.0` and `eslint@^9`** (plan said "latest"). Latest TypeScript 7 is outside typescript-eslint's peer range (`<6.1.0`) and `eslint-plugin-jsx-a11y` does not support ESLint 10. Revisit when those plugins catch up.
 - **Req 3 not fully met.** `jsx-a11y` recommended rules do not flag an `<input>` with no label. The only rule that does (`control-has-associated-label`) also false-positives on `<label htmlFor>`. Engineer chose to leave it off, so `npm run lint` does not fail on that example. The spec example needs amending by the product owner; label coverage relies on RTL role/label queries in tests. Added `@types/node` and `@testing-library/dom` (peer of RTL) as dev dependencies; `tsconfig.app.json` types are `vite/client` and `@testing-library/jest-dom`, and tests import `expect`/`test` from `vitest` (no globals).
-
+- **PR review changes:** README no longer carries the origin/localStorage caveat or a spec reference in Status (replaced with a generic line), and the `vite.config.ts` comment is generic rather than naming the URL. The `base` value is still the repo name `/AnthropicSDLCExample/`.
