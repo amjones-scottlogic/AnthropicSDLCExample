@@ -1,11 +1,30 @@
-# AI-SDLC Tracker
+# AI-SDLC
 
-A running record of how we apply the AI-native SDLC to this project. Add a section at each stage.
+How the AI-native SDLC runs in this project: the stages, what triggers each one, and who does what. Metrics are at the end.
 
-## Setup
-- Repo initialised, README added.
+## Stages
 
-## Deploy: approval gates
-- Source: AI-native SDLC Playbook, "Hooks as Approval Gates".
-- Added a `PreToolUse` hook (`.claude/hooks/push-gate.sh`) that pauses every `git push` for human approval (permission decision `ask`).
-- Replaced the lesson's production-deploy gate: this app has no deploy step, so push is the closest release checkpoint.
+### Plan
+- **Trigger:** an originator has an idea or problem.
+- **Role:** the originator brainstorms with Claude and reviews the result. The product owner accepts it into Design or closes it.
+- **Outcome:** a committed intent in the originator's own words.
+
+### Design
+- **Trigger:** the product owner accepts an intent.
+- **Role:** Claude drafts requirements and design together, constrained by the project standards and flagging concerns. The product owner reviews the draft, resolves flagged concerns, and decides whether it goes to Build.
+- **Outcome:** a committed spec, reviewed through a pull request.
+
+### Deploy
+- **Trigger:** a push to the remote.
+- **Role:** a human approves every push.
+- **Outcome:** nothing is released without a human decision.
+
+## Metrics
+
+Definitions only. Each stage has a leading and a lagging metric, measured from git history where possible.
+
+| Stage | Leading | Lagging |
+|---|---|---|
+| Plan | Time from first conversation to the intent being committed | Share of intents accepted into Design; edits to an intent after its spec is committed |
+| Design | Time from the intent commit to the spec commit | Spec commits after the first plan commit for the same change |
+| Deploy | To be defined | To be defined |

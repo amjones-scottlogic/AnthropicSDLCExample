@@ -10,7 +10,8 @@ A browser-only todo app built with React, created as a hands-on exercise to try 
 ## How this repo is organised
 
 - `intent/`: one file per idea or feature, written in the originator's own words (Plan stage). Create new ones with the `capture-intent` skill in `.claude/skills/`.
-- `AI-SDLC.md`: a running record of how each stage of the AI-native SDLC is applied here.
+- `spec/`: requirements and design for each accepted intent (Design stage). Create them with the `write-spec` skill.
+- `AI-SDLC.md`: the stages of the AI-native SDLC as run here: triggers, roles and metrics.
 - `.claude/`: project-level Claude Code configuration (skills and hooks, including an approval gate on `git push`).
 
 ## Getting started
