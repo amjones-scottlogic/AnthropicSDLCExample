@@ -29,22 +29,21 @@ A single-user React app that runs entirely in the browser. It lets the user capt
 
 ## Design
 
-- **Stack:** React single-page app, built with Vite. No router, no backend. Vite is a common default for a browser-only React app; it can be swapped without affecting the spec.
+- **Stack:** React single-page app. No router, no backend.
 - **Data model:** two lists, `workstreams` (`id`, `name`) and `actions` (`id`, `workstreamId`, `text`, `done`, `createdAt`). Each action belongs to exactly one workstream. IDs are generated in the browser (`crypto.randomUUID`).
 - **State and storage:** one top-level state object managed with a reducer. A thin storage module reads and writes it as a single JSON value under one localStorage key, with a `version` field so the format can change later. Keeping storage behind one module keeps components free of localStorage calls and makes it easy to test.
 - **UI:** a sidebar listing workstreams plus an "All" entry, and a main panel showing the selected view with an add-action form. Native HTML controls (buttons, checkboxes, form inputs, labels) are used wherever possible, because they give keyboard support and accessible semantics for free.
-- **Testing:** unit tests for the reducer and the storage module, including unreadable stored data. Component tests (React Testing Library) for requirements 1 to 7, driven through the keyboard-accessible controls. Colour contrast is checked manually when the styles are chosen.
+- **Testing:** unit tests for the reducer and the storage module, including unreadable stored data. Component tests for requirements 1 to 7, driven through the keyboard-accessible controls. Colour contrast is checked manually when the styles are chosen.
 
 ## Out of scope
 
 - A backend, accounts, or sync across machines or browsers.
 - Features the intent does not mention: due dates, priorities, tags, reminders, recurring actions, search.
 - Export, import or backup of data (see flagged concerns).
-- CI pipeline and hosting (see open questions).
+- CI pipeline and hosting. The intent decides these (GitHub Pages with CI), but this spec does not design them.
 
 ## Open questions
 
-- **CI and hosting:** does the app need a CI pipeline and GitHub Pages hosting, or can it stay local? Carried forward from the intent, to be decided later.
 - **Completed actions:** should done actions stay visible in the list, or be hidden or archived after a while? This spec keeps them visible and leaves them in place until the user deletes them.
 - **Action ordering:** is creation order enough, or does the user want to reorder actions by hand? This spec uses creation order.
 - **Workstream deletion:** is deleting a workstream along with its actions acceptable, or should the user have to move or clear the actions first? This spec uses delete with confirmation.
@@ -52,4 +51,4 @@ A single-user React app that runs entirely in the browser. It lets the user capt
 ## Flagged concerns
 
 - **Data loss risk.** localStorage is cleared when the user clears site data, and some browsers evict it in private mode or under storage pressure. The standards rule out sync and a backend, so there is no recovery path. The spec has no export or backup, because the intent does not ask for one. If the user will depend on this data, a manual export and import is the smallest fix and should be added to the intent first.
-- **Hosting changes the data's home.** localStorage is tied to the origin. If the app later moves from local use to GitHub Pages, or between local ports, the existing data will not appear at the new origin. This depends on the open question about hosting, which is worth resolving before real data builds up.
+- **The hosted address is the data's home.** localStorage is tied to the origin. The app is hosted on GitHub Pages, so if its URL ever changes, or the user switches between the hosted app and a local copy, the existing data will not appear at the new origin. The address should be settled before real data builds up.
