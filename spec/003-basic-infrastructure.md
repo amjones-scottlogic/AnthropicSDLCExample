@@ -45,7 +45,7 @@ A working base for the project so the todo app (intent 001) can be built, checke
 - **No router:** consistent with spec 001, so no single-page-app fallback or 404 rewrite is needed on Pages.
 - **Dependencies:** all installed from npm and bundled at build time. No runtime CDN links or remote fonts, which keeps the no-external-calls standard.
 - **Merge gate:** a branch protection rule (or ruleset) on `main` requiring the CI workflow's check to pass before merging, with the owner allowed to bypass it. The bypass keeps the gate a safeguard rather than a lock. Unlike the workflow files, this is a repository setting, so it is set up by hand.
-- **Manual one-offs:** Pages must be enabled in the repository settings with "GitHub Actions" as the source, and the merge gate above must be configured. Neither can be done from code; both are listed in the README.
+- **Manual one-offs:** Pages must be enabled in the repository settings with "GitHub Actions" as the source, and the merge gate above must be configured. Neither can be done from code. They are one-off setup steps, so they are recorded in the plan and pull request that introduce the infrastructure, not in the README.
 
 ## Out of scope
 
