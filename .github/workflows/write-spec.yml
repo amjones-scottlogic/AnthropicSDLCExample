@@ -1,0 +1,55 @@
+name: Write spec
+
+# Design stage: turn an accepted intent into a draft spec and open a PR.
+# Needs an ANTHROPIC_API_KEY repo secret. Without one the run skips cleanly
+# and says how to fix it, rather than failing.
+on:
+  workflow_dispatch:
+    inputs:
+      intent:
+        description: "Intent number, e.g. 001"
+        required: true
+  push:
+    branches: [main]
+    paths: ["intent/**"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: write-spec
+  cancel-in-progress: false
+
+jobs:
+  spec:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Check for API key
+        id: key
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Spec not written::ANTHROPIC_API_KEY secret is not set, so no spec was generated."
+            {
+              echo "### Spec generation skipped"
+              echo "No \`ANTHROPIC_API_KEY\` repository secret is set."
+              echo "Add one under Settings → Secrets and variables → Actions, then re-run this workflow."
+              echo "Until then, write the spec locally with \`/write-spec\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        if: steps.key.outputs.present == 'true'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: /write-spec intent ${{ inputs.intent || 'the accepted intent changed in this push' }}
