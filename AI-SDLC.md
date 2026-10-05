@@ -13,6 +13,7 @@ How the AI-native SDLC runs in this project: the stages, what triggers each one,
 - **Trigger:** the product owner accepts an intent.
 - **Role:** Claude drafts requirements and design together, constrained by the project standards and flagging concerns. The product owner reviews the draft, resolves flagged concerns, and decides whether it goes to Build.
 - **Outcome:** a committed spec, reviewed through a pull request.
+- **Automation:** the `write-spec` GitHub Action writes the spec and opens the pull request when an intent is merged to `main`.
 
 ### Deploy
 - **Trigger:** a push to the remote.
