@@ -13,7 +13,7 @@ How the AI-native SDLC runs in this project: the stages, what triggers each one,
 - **Trigger:** the product owner accepts an intent.
 - **Role:** Claude drafts requirements and design together, constrained by the project standards and flagging concerns. The product owner reviews the draft, resolves flagged concerns, and decides whether it goes to Build.
 - **Outcome:** a committed spec, reviewed through a pull request.
-- **Automation:** the `write-spec` GitHub Action runs the `write-spec` skill when a change under `intent/` is merged to `main`, or when started by hand with an intent number. It opens a pull request from a branch with the draft spec. Nobody runs `/write-spec` locally except as a fallback. If the `ANTHROPIC_API_KEY` repository secret is not set, the run skips and says how to fix it.
+- **Automation:** the `write-spec` GitHub Action writes the spec and opens the pull request when an intent is merged to `main`.
 
 ### Deploy
 - **Trigger:** a push to the remote.
