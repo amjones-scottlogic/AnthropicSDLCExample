@@ -16,8 +16,32 @@ A browser-only todo app built with React, created as a hands-on exercise to try 
 
 ## Getting started
 
-The app has not been scaffolded yet. Once it has, setup instructions will go here.
+Requires Node 22 and npm.
+
+```
+npm install        # install dependencies
+npm run dev        # serve locally with hot reload
+npm test           # run the test suite once
+npm run lint       # ESLint, including jsx-a11y accessibility rules
+npm run typecheck  # TypeScript strict-mode check
+npm run build      # build static files into dist/
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build on every pull request and push to `main`. A push to `main` that passes then deploys to GitHub Pages.
+
+## Deployed app
+
+https://amjones-scottlogic.github.io/AnthropicSDLCExample/
+
+The app stores data in localStorage, which is tied to the site's origin. Renaming or moving the repository changes the URL and strands existing data, and `npm run dev` (localhost) is a different origin from the hosted site. The Vite `base` path in `vite.config.ts` must match the repository name.
+
+## One-off repository setup (manual)
+
+These are settings, not code:
+
+1. Settings, Pages: set Source to "GitHub Actions".
+2. Settings, Rules: protect `main`, require the `ci` status check, and allow the repository admin to bypass (so a broken pipeline never locks the repo). Enable this after the first green CI run so `ci` can be selected.
 
 ## Status
 
-Early setup: repository initialised.
+Infrastructure in place (spec 003). No todo features yet (intent 001).
