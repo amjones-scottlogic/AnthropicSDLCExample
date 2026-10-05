@@ -1,5 +1,5 @@
 # Intent: Personal actions and todo tracker
-Author: Andrew Jones (originator and sole user). Status: draft.
+Author: Andrew Jones (originator and sole user). Status: accepted.
 
 ## Problem
 I need to track actions and todos across my different workstreams, and I don't have one place to do it. This is also a hands-on exercise in applying Anthropic's AI-native SDLC teachings, with the app as the vehicle.
