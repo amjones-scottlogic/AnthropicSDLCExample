@@ -1,5 +1,5 @@
 # Intent: Basic infrastructure for building and deploying the todo app
-Author: Andrew Jones, originator. Status: draft.
+Author: Andrew Jones, originator. Status: accepted.
 
 ## Problem
 There is nothing to build on yet. The repo has no application framework set up, no test tooling, no CI, and no way to deploy. Intent 001 left hosting as an open question. Until this exists, the todo app in intent 001 cannot be implemented.
