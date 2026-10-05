@@ -19,4 +19,4 @@ A simple app that I use myself to:
 - Data is stored in the browser's localStorage, so it persists between sessions on the same machine. No sync across machines or browsers is needed.
 
 ## Open questions
-- Do I need a CI pipeline and GitHub Pages hosting, or can the app stay local? To be decided later.
+- None. The earlier question about CI and hosting is resolved: the app will be hosted on GitHub Pages with a CI pipeline.
