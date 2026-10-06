@@ -1,5 +1,5 @@
 # Intent: Define the app's theme
-Author: Andrew Jones (originator and sole user). Status: draft.
+Author: Andrew Jones (originator and sole user). Status: accepted.
 
 ## Problem
 I've looked at five Material UI layouts for the todo app and picked the warm sidebar one as the best layout. I didn't like the colours and typography used in that prototype. Without a defined theme the app would fall back on the library's defaults, or on whatever each screen happens to use, and it would look inconsistent.
