@@ -97,4 +97,11 @@ Manual checks (step 7), in `npm run dev` and `npm run preview`: tab through ever
 None.
 
 ## Deviations
-None.
+- 2026-10-06: built in one sequential session, so the step 3 stub files were not needed and steps 5 and 6 were not run in parallel.
+- 2026-10-06: component behaviour is tested in `src/todos/page.test.tsx` (workstream form, colour picker, delete dialog, empty state, rows, done section, add bar, views, persistence) instead of one test file per component. Only `ActionList.test.tsx` is separate, because it needs the drag-and-drop layout stub. Every test the Tests section names is still covered.
+- 2026-10-06: the reorder spike passed. Keyboard dragging with `@dnd-kit` works in jsdom once `getBoundingClientRect` is stubbed in the test, so the Move up / Move down fallback was not needed.
+- 2026-10-06: `WorkstreamDrawer` owns the create, edit and delete dialogs (the page only handles selection after a delete). The drag handle is passed into `ActionRow` by `ActionList`'s sortable wrapper.
+- 2026-10-06: `autoFocus` is banned by jsx-a11y, so the first field in a form and the Cancel button in the delete dialog are focused with a ref and an effect instead.
+- 2026-10-06: the All-view workstream picker in the add bar is a native `<select>` with a visible `<label>`, not an MUI menu, for keyboard and label support.
+- 2026-10-06: the done section is not shown when there are no done actions.
+- 2026-10-06: `App.test.tsx` and `main.test.tsx` now look for the empty state heading ("Create your first workstream"), because the placeholder page is gone.
