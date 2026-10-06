@@ -2,8 +2,7 @@
 Intent: [intent/004-app-theme.md](../intent/004-app-theme.md). Status: draft.
 
 ## Summary
-One central Material UI theme that every screen in the todo app uses, covering colour palette, typography, and shape and spacing. It exists so the app looks consistent and deliberate rather than falling back on library defaults or per-screen styling. The look is professional with a little personality: a cool neutral base, a violet accent, and a set of pastel workstream colours. It defines the look only: it adds no todo features and does not choose the layout, which is a separate intent. The values below were settled by reviewing a set of prototypes, and the chosen one is kept in `prototypes/mui-a-sidebar`.
-
+One central Material UI theme that every screen in the todo app uses, covering colour palette, typography, and shape and spacing. It exists so the app looks consistent and deliberate rather than falling back on library defaults or per-screen styling. The look is professional with a little personality: a cool neutral base, a violet accent, and a set of pastel workstream colours. It defines the look only: it adds no todo features and does not choose the layout, which is a separate intent.
 ## Requirements
 
 1. **One theme.** The app has a single theme, defined in one place and applied at the root.
@@ -30,8 +29,9 @@ One central Material UI theme that every screen in the todo app uses, covering c
 
 ## Design
 
+- **Layout terms used below:** the theme is designed for the app's intended layout, which a separate intent will build. The terms mean: the *drawer* is a permanent left-hand panel listing the workstreams plus an "All actions" entry; the *header band* is the full-width strip at the top of the main area showing the current view's name and progress; the *add bar* is the form for adding an action, fixed to the bottom of the main area; the *All view* is the list of actions across every workstream. The theme supplies the colours, type and shape these elements need. It does not build them.
 - **Library and wiring:** `@mui/material` with Emotion (its peer dependencies), added as npm dependencies and bundled at build time. The theme is one `createTheme` call in `src/theme/theme.ts` (following the `src-structure` skill), applied once with `ThemeProvider` and `CssBaseline` in `main.tsx`. Components use theme tokens (`theme.palette`, `theme.spacing`, `sx`), never hard-coded values. Workstream colours and the shared ink colour are exported from the theme module so components do not repeat hex codes.
-- **Palette (light):** a cool neutral base with a violet primary, deep ink text, and pastel workstream colours. The warm cream and terracotta of an earlier prototype are deliberately not used. Ratios are measured with the WCAG relative luminance formula against the surface the colour sits on.
+- **Palette (light):** a cool neutral base with a violet primary, deep ink text, and pastel workstream colours. Warm cream and terracotta tones, and serif headings, are deliberately not used. Ratios are measured with the WCAG relative luminance formula against the surface the colour sits on.
 
   | Token | Value | Contrast |
   |---|---|---|
@@ -86,12 +86,12 @@ One central Material UI theme that every screen in the todo app uses, covering c
 
 - **Dark mode:** should there be a dark variant? The intent does not ask for one, so this spec defines light mode only. A dark palette would need its own contrast checks.
 - **Workstream colour assignment:** the set has five pastels (four plus lavender for All). How is a colour assigned to a new workstream (next unused in order, or chosen by the user), and what happens when there are more workstreams than colours? The intent does not say, and that is a feature decision, so it is left to the layout or workstream spec.
-- **Palette approval:** the violet and the pastels come from a prototype the product owner reviewed. They should confirm the final values before build, because changes after the theme is built are rework.
+- **Palette approval:** the violet, the pastels and the font were chosen by the product owner from mockups, but the exact values are written here for the first time. They should confirm the final values before build, because changes after the theme is built are rework.
 
 ## Flagged concerns
 
-- **Adding Material UI affects the existing base.** Spec 003 sets up a bare React skeleton. MUI, Emotion and a bundled font add runtime dependencies and increase the bundle size (the prototype was about 160 kB gzipped for JavaScript). This is within the standards but worth knowing.
+- **Adding Material UI affects the existing base.** Spec 003 sets up a bare React skeleton. MUI, Emotion and a bundled font add runtime dependencies and increase the bundle size (roughly 150 kB gzipped of JavaScript in a small MUI mockup). This is within the standards but worth knowing.
 - **The pastel colours fail contrast on white by themselves.** At 1.4:1 to 2.2:1, they cannot be the only marker of anything. The spec limits them to filled surfaces with ink text and always pairs a ring or dot with text, but a future screen could break this. The contrast test cannot catch a pastel used on its own, so reviewers need to watch for it.
-- **The prototype does not yet meet its own focus rule.** The prototype uses the default violet focus ring, which is only 2.2:1 on the ink add bar, and the default placeholder colour is about 3:1. The spec requires fixes for both, so the built theme will differ from the prototype in these two places.
+- **MUI defaults fail contrast in two places.** The default focus ring in the primary violet is only 2.2:1 on the ink add bar, and MUI's default placeholder colour is about 3:1 on white. The spec overrides both in the theme, so these must not be left at their defaults.
 - **Contrast is verified for the palette, not the finished screens.** The automated test covers token pairings. Text over other backgrounds, such as disabled states or hover tints, still needs checking when the layout is built.
 - **Intent 004 names Material UI as a constraint but does not allow any other styling approach.** The spec therefore uses MUI's own theming only and adds no second styling library.
