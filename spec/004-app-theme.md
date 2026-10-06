@@ -3,6 +3,7 @@ Intent: [intent/004-app-theme.md](../intent/004-app-theme.md). Status: approved.
 
 ## Summary
 One central Material UI theme that every screen in the todo app uses, covering colour palette, typography, and shape and spacing. It exists so the app looks consistent and deliberate rather than falling back on library defaults or per-screen styling. The look is professional with a little personality: a cool neutral base, a violet accent, and a set of pastel workstream colours. It defines the look only: it adds no todo features and does not choose the layout, which is a separate intent.
+
 ## Requirements
 
 1. **One theme.** The app has a single theme, defined in one place and applied at the root.
@@ -11,7 +12,8 @@ One central Material UI theme that every screen in the todo app uses, covering c
 2. **Colour palette.** The theme defines the palette in Design below.
    - Every text and control colour pairing the theme produces meets WCAG AA: 4.5:1 for text, 3:1 for large text, control borders, and focus indicators.
    - No meaning is carried by colour alone (consistent with spec 001, requirement 4).
-3. **Workstream colours.** Each workstream has a pastel colour from a fixed set in the theme.
+3. **Workstream colours.** The theme provides a fixed set of pastel colours for workstreams.
+   - How a colour is chosen for a workstream is not decided here (see Out of scope).
    - A workstream's colour is only ever used as a filled surface with ink text on it, or alongside the workstream's name. It is never the only way to identify a workstream.
 4. **Typography.** The theme defines the font, type scale and weights in Design below.
    - All text uses the theme's typography variants, not ad hoc font settings.
@@ -77,16 +79,19 @@ One central Material UI theme that every screen in the todo app uses, covering c
 
 - The sidebar layout, or any other screen layout. That is its own intent, which depends on this one.
 - Any todo feature or behaviour.
-- Dark mode and a user theme switcher (see open questions).
+- Dark mode and a theme switcher. The app is light only.
 - Fonts or any other asset loaded from outside the app.
-- Per-user theme customisation, user-chosen workstream colours, or storing a theme preference.
+- Per-user theme customisation, or storing a theme preference.
+- Choosing or assigning a workstream's colour. The product owner wants the user to choose it, and that belongs to the workstream or layout intent and spec, which must also say what happens when a user wants a colour outside the set. This spec only supplies the colours.
 - Greeting text, emoji or other copy, which is a content decision, not a theme one.
 
 ## Open questions
 
-- **Dark mode:** should there be a dark variant? The intent does not ask for one, so this spec defines light mode only. A dark palette would need its own contrast checks.
-- **Workstream colour assignment:** the set has five pastels (four plus lavender for All). How is a colour assigned to a new workstream (next unused in order, or chosen by the user), and what happens when there are more workstreams than colours? The intent does not say, and that is a feature decision, so it is left to the layout or workstream spec.
-- **Palette approval:** the violet, the pastels and the font were chosen by the product owner from mockups, but the exact values are written here for the first time. They should confirm the final values before build, because changes after the theme is built are rework.
+None. The questions raised during drafting are closed:
+
+- **Dark mode:** not wanted. The app is light only (see Out of scope).
+- **Workstream colour assignment:** moved out of this spec. It is a feature question for the workstream or layout intent.
+- **Palette:** the violet, pastels and font are confirmed by the product owner.
 
 ## Flagged concerns
 
