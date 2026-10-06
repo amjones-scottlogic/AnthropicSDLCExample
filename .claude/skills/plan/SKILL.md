@@ -34,6 +34,9 @@ Spec: [link to the spec file]. Intent: [link to the intent file]. Status: draft.
 ## Order of work
 [Numbered, buildable steps. Each leaves the project working. Say which spec requirements each step satisfies.]
 
+## Parallel work
+[Which steps can run at the same time in separate sessions, each in its own worktree and branch. For each, the files it owns; no file may appear in two parallel tasks. Say which steps must wait for another and why. If nothing can run in parallel, say "None" and why. Use the `src-structure` skill's domain boundaries to find the split.]
+
 ## Tests
 [Which tests validate each requirement, and the acceptance criteria that mean "done". Name the test files.]
 
@@ -52,6 +55,7 @@ Spec: [link to the spec file]. Intent: [link to the intent file]. Status: draft.
 
 ## Rules
 
+- Split work for parallel sessions only along file boundaries. Shared files (routing in `App.tsx`, `package.json`, shared models) go in an early step that finishes before the parallel tasks start.
 - Plan only what the spec asks for. Do not add scope.
 - The plan must be executable by someone who was not in the conversation. No "as discussed".
 - A plan changed after approval is fine when reality demands it, but only with a Deviations entry in the same commit as the code.
