@@ -17,6 +17,7 @@ Requires Node 22 and npm.
 - `npm run lint`: ESLint, including jsx-a11y rules
 - `npm run typecheck`: TypeScript strict-mode check
 - `npm run build`: build static files into `dist/`
+- `npm run check:offline`: fail if the built HTML or CSS refers to an external host (run after build)
 
 CI runs lint, typecheck, test and build on every PR; make all four pass before asking for review.
 
