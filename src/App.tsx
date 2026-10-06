@@ -1,8 +1,12 @@
+import Typography from '@mui/material/Typography'
+
 export default function App() {
   return (
     <main>
-      <h1>Todo app</h1>
-      <p>Coming soon.</p>
+      <Typography variant="h1" component="h1">
+        Todo app
+      </Typography>
+      <Typography>Coming soon.</Typography>
     </main>
   )
 }

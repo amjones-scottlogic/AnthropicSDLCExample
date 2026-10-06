@@ -19,6 +19,7 @@ src/
       types/
       utils/
   storage/              localStorage reads and writes
+  theme/                the one app-wide MUI theme (theme.ts), applied in main.tsx
   <domain>/             one folder per page, e.g. todos/ (route /todos)
     page.tsx            the page itself
     screens/            only if the page has several screens
@@ -40,6 +41,7 @@ Create only the folders a domain needs. Don't add empty ones.
 - **Sub-domain:** a page that sits under a domain's route, such as the page for a single todo item (`/todos/1`). It has its own `page.tsx` and may have its own `components/`, `hooks/` and `screens/`, used only at that level.
 - **Model:** a concept shared across the app, usually one that would map to a backend entity (a todo item). `types/` holds its types; `utils/` holds pure logic over it. Models contain no React. Add a `hooks/` folder only when a model genuinely needs one.
 - **Generic components:** top-level `components/` is for UI with no knowledge of any domain or model.
+- **Theme:** `theme/` holds the single MUI theme and its exported colour constants. Only `main.tsx`, components that need a theme constant (such as a workstream colour) and tests import it. It imports nothing from other folders.
 - **Storage:** `storage/` is the only code that touches `localStorage`, so the browser-only data rule in `project-standards` has one place to check.
 - **No shared hooks or utils folders.** A hook or helper lives in the one domain that uses it, or with the model it relates to. If it fits neither, ask whether it is really generic UI or a new model.
 

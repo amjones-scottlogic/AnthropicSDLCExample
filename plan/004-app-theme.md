@@ -11,6 +11,7 @@ Create:
 - `src/theme/contrast.ts`: `contrastRatio(fg, bg)` using the WCAG relative-luminance formula; test-only helper, imported only by `*.test.*` files (kept as its own file so `theme.test.ts` and `ProgressRing.test.tsx` can share it).
 - `src/components/ProgressRing.tsx`: generic ring (two `CircularProgress`: pale track and arc), props `size`, `value` (0 to 100), `count` (number shown in ink at the centre), `colour`; wrapper is `aria-hidden`. No domain knowledge. Used by the future drawer (36px) and header band (56px).
 - `src/components/ProgressRing.test.tsx`: see Tests.
+- `src/test/setup.ts`: change, add per-test `cleanup`.
 - `src/main.test.tsx`: wiring test (see Tests).
 - `scripts/check-offline.mjs`: scans `dist/` HTML and CSS for external hosts (see Order of work, step 6).
 
@@ -68,4 +69,6 @@ Done means: lint, typecheck, test, build and `check:offline` all pass; the manua
 None. Resolved with the engineer: `src/theme/` is added to the `src-structure` skill; `ProgressRing` is in scope because it is testable; `contrast.ts` stays in `src/theme/`.
 
 ## Deviations
-None.
+- 2026-10-06: `src/theme/theme.test.ts` is `theme.test.tsx`, because the focus test renders JSX.
+- 2026-10-06: `src/test/setup.ts` now registers Testing Library `cleanup` after each test (Vitest globals are off, so renders leaked between tests in `ProgressRing.test.tsx`).
+- 2026-10-06: the contrast list in the Tests section is implemented as a table of pairings in `theme.test.tsx`; the pairings are as listed, plus ink on every workstream pastel.
