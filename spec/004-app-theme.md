@@ -1,5 +1,5 @@
 # Spec: Define the app's theme
-Intent: [intent/004-app-theme.md](../intent/004-app-theme.md). Status: draft.
+Intent: [intent/004-app-theme.md](../intent/004-app-theme.md). Status: approved.
 
 ## Summary
 One central Material UI theme that every screen in the todo app uses, covering colour palette, typography, and shape and spacing. It exists so the app looks consistent and deliberate rather than falling back on library defaults or per-screen styling. The look is professional with a little personality: a cool neutral base, a violet accent, and a set of pastel workstream colours. It defines the look only: it adds no todo features and does not choose the layout, which is a separate intent.
