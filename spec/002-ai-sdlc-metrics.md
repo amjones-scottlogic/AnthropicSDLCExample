@@ -1,5 +1,5 @@
 # Spec: Capture AI-SDLC metrics
-Intent: [intent/002-ai-sdlc-metrics.md](../intent/002-ai-sdlc-metrics.md). Status: draft.
+Intent: [intent/002-ai-sdlc-metrics.md](../intent/002-ai-sdlc-metrics.md). Status: approved.
 
 ## Summary
 A `capture-metrics` skill that records the leading and lagging metrics defined in `AI-SDLC.md` as raw measurements, taking them from git history wherever possible and from Claude session stats where git cannot supply them. It runs locally. A Claude Code hook fires it when Claude opens a pull request, and the measurements are posted as a comment on that PR. It captures data only. Charts are a later intent.
