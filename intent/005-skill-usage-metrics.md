@@ -1,5 +1,5 @@
 # Intent: Capture skill usage in the PR metrics
-Author: Amy Laws (originator). Status: draft.
+Author: Amy Laws (originator). Status: accepted.
 
 ## Problem
 The PR metrics comment (intent 002) doesn't say which skills were used while the PR was built. I want that as extra data for the dashboard, which is covered in a separate intent.
