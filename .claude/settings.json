@@ -13,6 +13,15 @@
             "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/plan-sync.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/test-guard.sh"
+          }
+        ]
       }
     ]
   }

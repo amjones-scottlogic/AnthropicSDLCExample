@@ -46,6 +46,10 @@ Create only the folders a domain needs. Don't add empty ones.
 - **Storage:** `storage/` is the only code that touches `localStorage`, so the browser-only data rule in `project-standards` has one place to check.
 - **No shared hooks or utils folders.** A hook or helper lives in the one domain that uses it, or with the model it relates to. If it fits neither, ask whether it is really generic UI or a new model.
 
+## Outside `src/`
+
+`e2e/` at the repo root holds the Playwright tests (`*.e2e.ts`) and their helpers for the whole built app. It is not organised by domain, and nothing in `src/` imports from it.
+
 ## Rules
 
 - **Dependencies point one way:** `page` → `screens` → `components` → `hooks` → `storage` → `models`.

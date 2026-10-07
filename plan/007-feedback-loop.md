@@ -85,4 +85,5 @@ Done means: `npm run verify` passes from a clean clone after `npx playwright ins
 None.
 
 ## Deviations
-None.
+- 2026-10-07: `test-guard.sh` unlocks a test only for the approved plan whose number matches the current branch (`build/007-*` reads `plan/007-*.md`), not any approved plan. Found when an old approved plan (004) unlocked `src/App.test.tsx` for good. `test-guard.test.sh` gained a case for it.
+- 2026-10-07: the journey in `e2e/tracker.e2e.ts` checks the workstream button, the open action and "Done (1)" after reload, not a "Work" heading. The app reopens on "All actions", found from the failure screenshot.
