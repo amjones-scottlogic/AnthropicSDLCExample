@@ -1,5 +1,5 @@
 # Intent: Continuous evals in CI
-Author: Andrew Jones (originator and sole user). Status: draft.
+Author: Andrew Jones (originator and sole user). Status: accepted.
 
 ## Problem
 `CLAUDE.md`, the skills in `.claude/skills/` and the hooks in `.claude/hooks/` decide how Claude behaves in this repo, but a change to any of them is only checked by reading it. A line dropped from `CLAUDE.md`, a reworded skill or a changed hook can quietly make Claude worse, and I would only find out when it repeats a mistake in later work. CI tests the app, not the agent's instructions.
