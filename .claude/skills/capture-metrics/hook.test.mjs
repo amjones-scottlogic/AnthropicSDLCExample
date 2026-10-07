@@ -39,8 +39,23 @@ describe('capture-metrics hook (Req 5)', () => {
     expect(r.calls).toContain('capture.mjs --pr 7 --catch-up')
   })
 
+  it('updates the metrics when commits are pushed to a branch with an open PR', () => {
+    for (const c of ['git push', 'git push -u origin build/002-x', 'git push origin HEAD:refs/heads/x']) {
+      const r = runHook(c)
+      expect(r.status).toBe(0)
+      expect(r.calls).toContain('capture.mjs --pr 7 --catch-up')
+    }
+  })
+
+  it('stays silent on a push when the branch has no open PR', () => {
+    const r = runHook('git push -u origin x', { ghNumber: null })
+    expect(r.status).toBe(0)
+    expect(r.stderr).toBe('')
+    expect(r.calls).toBe('')
+  })
+
   it('does nothing for other commands', () => {
-    for (const c of ['git push -u origin x', 'gh pr view 7', 'npm test']) {
+    for (const c of ['gh pr view 7', 'git commit -m x', 'git pull', 'npm test']) {
       const r = runHook(c)
       expect(r.status).toBe(0)
       expect(r.calls).toBe('')
