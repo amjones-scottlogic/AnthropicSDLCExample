@@ -1,5 +1,5 @@
 # Spec: Capture skill usage in the PR metrics
-Intent: [intent/008-skill-usage-metrics.md](../intent/008-skill-usage-metrics.md). Status: draft.
+Intent: [intent/008-skill-usage-metrics.md](../intent/008-skill-usage-metrics.md). Status: approved.
 
 ## Summary
 Extend the `capture-metrics` skill so the PR metrics comment also records which of the repository's skills were used while the PR was built, how many times each was used, and the token usage of that work. The data comes from Claude session transcripts on the contributor's machine, attributed to the PR by branch. It is recorded as extra rows in the existing metrics comment, in the same raw format, and refreshed with it. It captures data only. The dashboard is a separate intent.
