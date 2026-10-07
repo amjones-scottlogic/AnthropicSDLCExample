@@ -10,7 +10,7 @@ Each stage of the AI-native SDLC has leading and lagging metrics, and nothing in
 - The raw data is recorded, not just summaries, so it can easily be displayed as charts and graphs later.
 - For now, a skill captures all the metrics we define, taking them from git history where possible.
 - Metrics that can't be taken from git history (for example time from first conversation to intent, concurrent sessions, time spent orchestrating rather than waiting) are gathered from Claude session stats.
-- The skill runs locally at the end of each stage, triggered by a Claude Code hook when Claude opens a pull request. The metrics are posted as a comment on that PR.
+- The skill runs locally at the end of each stage, triggered by a Claude Code hook when Claude opens a pull request. The metrics are posted as a comment on that PR, and updated when further commits are pushed to it.
 
 ## Affected users and systems
 - Users: just me.

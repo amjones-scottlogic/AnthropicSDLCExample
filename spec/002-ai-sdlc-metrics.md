@@ -1,8 +1,8 @@
 # Spec: Capture AI-SDLC metrics
-Intent: [intent/002-ai-sdlc-metrics.md](../intent/002-ai-sdlc-metrics.md). Status: draft.
+Intent: [intent/002-ai-sdlc-metrics.md](../intent/002-ai-sdlc-metrics.md). Status: approved.
 
 ## Summary
-A `capture-metrics` skill that records the leading and lagging metrics defined in `AI-SDLC.md` as raw measurements, taking them from git history wherever possible and from Claude session stats where git cannot supply them. It runs locally. A Claude Code hook fires it when Claude opens a pull request, and the measurements are posted as a comment on that PR. It captures data only. Charts are a later intent.
+A `capture-metrics` skill that records the leading and lagging metrics defined in `AI-SDLC.md` as raw measurements, taking them from git history wherever possible and from Claude session stats where git cannot supply them. It runs locally. A Claude Code hook fires it when Claude opens a pull request, and again when further commits are pushed to it. The measurements are posted as a comment on that PR and kept up to date. It captures data only. Charts are a later intent.
 
 ## Requirements
 
@@ -18,7 +18,8 @@ A `capture-metrics` skill that records the leading and lagging metrics defined i
    - The same repository state gives the same values when the skill is run again.
 4. **Session stats for the rest.** Metrics git cannot supply are gathered from Claude session stats on the engineer's machine, if those stats can be read (see Open questions).
    - Rows from session stats have `source` of `session`.
-5. **Runs when Claude opens a pull request.** A Claude Code hook fires when Claude runs the command that opens a PR and runs the skill's script for the stage that has just ended.
+5. **Runs when Claude opens a pull request, and when commits are pushed to it.** A Claude Code hook fires when Claude runs the command that opens a PR, and again when Claude pushes to a branch that has an open PR, and runs the skill's script for the stages the PR touches.
+   - A push to a branch with no open PR does nothing.
    - The stage is worked out from the files the branch changes against `main`: `intent/` is Plan, `spec/` is Design, `plan/` or `src/` is Build.
    - The measurements are posted as a comment on the PR once it has been created.
    - Re-running for the same PR updates its existing metrics comment rather than adding a second one.
@@ -34,7 +35,7 @@ A `capture-metrics` skill that records the leading and lagging metrics defined i
   - The script is plain Node and lives under `.claude/`, not `src/`, so the `src-structure` skill (which governs the React app) is not involved.
 - **No commit, no CI.** The metrics are a comment, not a change to the repository, so nothing is committed and nothing runs in CI.
 - **One row per measurement.** A long-format table (one row per metric per change) is the simplest thing that charts well: any tool can filter by `metric` and plot `value` against `captured_at`. New metrics add rows, not columns, so the fields never change.
-- **Hook.** A `PostToolUse` hook on `Bash`, matching `gh pr create`, in the same shape as `push-gate.sh`. It runs after the PR exists, so it has a PR number to comment on. It runs `capture.mjs` and posts the result with `gh pr comment`, using a hidden marker in the comment so a re-run can find and update it. It never blocks anything, whatever the outcome.
+- **Hook.** A `PostToolUse` hook on `Bash`, matching `gh pr create` and `git push`, in the same shape as `push-gate.sh`. It runs after the PR exists, so it has a PR number to comment on. On a push it looks up the PR for the current branch and does nothing if there is none. It runs `capture.mjs` and posts the result with `gh pr comment`, using a hidden marker in the comment so a re-run can find and update it. It never blocks anything, whatever the outcome.
 - **Git-derived metrics.** The script reads `git log` and, for PR data, `gh`.
 
   | Stage | Metric | How it is computed |
