@@ -1,5 +1,5 @@
 # Intent: AI-SDLC metrics dashboard
-Author: Andrew Jones (originator and sole user). Status: draft.
+Author: Amy Laws. Status: draft.
 
 ## Problem
 Intent 002 posts the AI-SDLC metrics as a comment on each pull request. That leaves the data spread across many PRs, so I can't see trends or compare stages without opening them one by one.
