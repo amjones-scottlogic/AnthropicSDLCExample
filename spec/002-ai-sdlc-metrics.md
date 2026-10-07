@@ -35,7 +35,7 @@ A `capture-metrics` skill that records the leading and lagging metrics defined i
   - The script is plain Node and lives under `.claude/`, not `src/`, so the `src-structure` skill (which governs the React app) is not involved.
 - **No commit, no CI.** The metrics are a comment, not a change to the repository, so nothing is committed and nothing runs in CI.
 - **One row per measurement.** A long-format table (one row per metric per change) is the simplest thing that charts well: any tool can filter by `metric` and plot `value` against `captured_at`. New metrics add rows, not columns, so the fields never change.
-- **Hook.** A `PostToolUse` hook on `Bash`, matching `gh pr create` and `git push`, in the same shape as `push-gate.sh`. It runs after the PR exists, so it has a PR number to comment on. On a push it looks up the PR for the current branch and does nothing if there is none. Commits only reach the PR when they are pushed, so a push, not a commit, is the trigger. It runs `capture.mjs` and posts the result with `gh pr comment`, using a hidden marker in the comment so a re-run can find and update it. It never blocks anything, whatever the outcome.
+- **Hook.** A `PostToolUse` hook on `Bash`, matching `gh pr create` and `git push`, in the same shape as `push-gate.sh`. It runs after the PR exists, so it has a PR number to comment on. On a push it looks up the PR for the current branch and does nothing if there is none. It runs `capture.mjs` and posts the result with `gh pr comment`, using a hidden marker in the comment so a re-run can find and update it. It never blocks anything, whatever the outcome.
 - **Git-derived metrics.** The script reads `git log` and, for PR data, `gh`.
 
   | Stage | Metric | How it is computed |

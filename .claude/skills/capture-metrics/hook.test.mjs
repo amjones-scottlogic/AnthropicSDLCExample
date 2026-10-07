@@ -32,34 +32,25 @@ function runHook(command, { ghNumber = '7', nodeExit = 0 } = {}) {
   return { status: r.status, stderr: r.stderr, calls: existsSync(log) ? readFileSync(log, 'utf8').trim() : '' }
 }
 
+// Each command the hook can see, whether the PR for the branch exists, and whether the script should run.
+const cases = [
+  { name: 'gh pr create', command: 'gh pr create --base main --title "x"', pr: '7', runs: true },
+  { name: 'push, PR open', command: 'git push -u origin build/002-x', pr: '7', runs: true },
+  { name: 'push to a ref, PR open', command: 'git push origin HEAD:refs/heads/x', pr: '7', runs: true },
+  { name: 'push, no PR yet (silent)', command: 'git push -u origin x', pr: null, runs: false, silent: true },
+  { name: 'gh pr view', command: 'gh pr view 7', pr: '7', runs: false },
+  { name: 'git commit', command: 'git commit -m x', pr: '7', runs: false },
+  { name: 'git pull', command: 'git pull', pr: '7', runs: false },
+  { name: 'npm test', command: 'npm test', pr: '7', runs: false },
+]
+
 describe('capture-metrics hook (Req 5)', () => {
-  it('runs the script for the new PR after gh pr create', () => {
-    const r = runHook('gh pr create --base main --title "x"')
+  it.each(cases)('$name', ({ command, pr, runs, silent }) => {
+    const r = runHook(command, { ghNumber: pr })
     expect(r.status).toBe(0)
-    expect(r.calls).toContain('capture.mjs --pr 7 --catch-up')
-  })
-
-  it('updates the metrics when commits are pushed to a branch with an open PR', () => {
-    for (const c of ['git push', 'git push -u origin build/002-x', 'git push origin HEAD:refs/heads/x']) {
-      const r = runHook(c)
-      expect(r.status).toBe(0)
-      expect(r.calls).toContain('capture.mjs --pr 7 --catch-up')
-    }
-  })
-
-  it('stays silent on a push when the branch has no open PR', () => {
-    const r = runHook('git push -u origin x', { ghNumber: null })
-    expect(r.status).toBe(0)
-    expect(r.stderr).toBe('')
-    expect(r.calls).toBe('')
-  })
-
-  it('does nothing for other commands', () => {
-    for (const c of ['gh pr view 7', 'git commit -m x', 'git pull', 'npm test']) {
-      const r = runHook(c)
-      expect(r.status).toBe(0)
-      expect(r.calls).toBe('')
-    }
+    if (runs) expect(r.calls).toContain('capture.mjs --pr 7 --catch-up')
+    else expect(r.calls).toBe('')
+    if (silent) expect(r.stderr).toBe('')
   })
 
   it('still exits 0 when the script fails, and says so on stderr', () => {
