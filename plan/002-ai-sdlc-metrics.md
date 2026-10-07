@@ -69,7 +69,11 @@ Done means: lint, typecheck, test, build and `check:offline` pass, the manual ru
 None.
 
 ## Deviations
-None.
+2026-10-07, found by reading the output of `capture.mjs` against real PRs (step 9) rather than by the stub-`gh` tests:
+- **PR list is limited.** `gh pr list` with 100 PRs and `files` exceeds GitHub's GraphQL node limit. The list now asks for the latest 25 PRs without `files` (`files` is only requested for the one PR being commented on). The share-merged-first-time row says "over the latest 25 PRs". Catch-up still scans 100 merged PRs, as it only needs `number` and `mergedAt`.
+- **Time to first conversation only counts sessions that predate the intent commit.** A session that wrote `intent/NNN-*.md` after the intent was first committed only edited it, and gave a negative value for intent 002. Such a row is now empty with a note.
+- **Time to first merged PR uses the author's earliest visible commit** across the listed PRs, not the current PR's first commit, and is empty rather than negative when that cannot be worked out. It still reads as a small number for the original author, because only the latest 25 PRs are visible.
+- **Manual check was read-only.** Step 9 was run through a throwaway script that called the real `gh` for reads and posted nothing, so no comment was created on #12 or #13 by the check.
 
 ## Verification
 1. `npm run lint && npm run typecheck && npm test && npm run build && npm run check:offline`.
