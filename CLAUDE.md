@@ -38,7 +38,7 @@ Run `npm run verify` before you say any work is done, and report its real output
 
 - Done means `npm run verify` passes.
 - Bug fixes: write a failing test first and show that it fails, then fix the code without changing that test.
-- Existing tests are protected: a hook blocks edits to them unless the approved plan names the test in its Tests section. Fix the code, not the test.
+- Existing tests are protected: a hook blocks edits to them unless the approved plan names the test in its Tests section. Fix the code, not the test. The unlock only works on a `build/NNN-*` branch, where it reads `plan/NNN-*.md`; on any other branch every existing test stays protected.
 - UI work: take a look at it. A test can call `takeScreenshot(page, 'name')` from `e2e/helpers/screenshot.ts`, then open `test-results/screenshots/name.png`. Screenshots are never committed.
 
 ## Conventions
