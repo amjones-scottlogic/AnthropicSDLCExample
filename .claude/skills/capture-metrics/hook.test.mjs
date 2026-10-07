@@ -48,7 +48,7 @@ describe('capture-metrics hook (Req 5)', () => {
   it.each(cases)('$name', ({ command, pr, runs, silent }) => {
     const r = runHook(command, { ghNumber: pr })
     expect(r.status).toBe(0)
-    if (runs) expect(r.calls).toContain('capture.mjs --pr 7 --catch-up')
+    if (runs) expect(r.calls).toContain('capture.mjs --pr 7')
     else expect(r.calls).toBe('')
     if (silent) expect(r.stderr).toBe('')
   })

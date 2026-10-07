@@ -1,7 +1,6 @@
 #!/bin/bash
 # Metrics hook: after `gh pr create`, and after any `git push` on a branch that has an open PR,
-# post (or update) the AI-SDLC metrics comment on that PR, and refresh comments on merged PRs
-# still awaiting their post-merge values.
+# post (or update) the AI-SDLC metrics comment on that PR.
 # Never blocks and never fails the command: any problem is reported and ignored.
 # Reads hook JSON from stdin; matches the command field directly (no jq dependency).
 input=$(cat)
@@ -23,6 +22,6 @@ if [ -z "$number" ]; then
   exit 0
 fi
 
-node .claude/skills/capture-metrics/capture.mjs --pr "$number" --catch-up \
+node .claude/skills/capture-metrics/capture.mjs --pr "$number" \
   || echo "capture-metrics: failed; the PR is unaffected" >&2
 exit 0

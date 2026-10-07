@@ -15,8 +15,6 @@ export const FIELDS = ['captured_at', 'stage', 'metric', 'kind', 'change', 'valu
 
 const HOUR = 3_600_000
 
-// ---------------------------------------------------------------- rows
-
 /** One measurement. An unknown value is left empty and must carry the reason in notes; it is never 0. */
 export function makeRow({ capturedAt, stage, metric, kind, change = '', value, unit = '', source, notes = '' }) {
   const unknown = value === null || value === undefined || value === '' || Number.isNaN(value)
@@ -36,8 +34,9 @@ export function makeRow({ capturedAt, stage, metric, kind, change = '', value, u
 
 const cell = (text) => String(text).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
 
-/** The PR comment: a hidden marker, then one table row per measurement. */
+/** The PR comment: a hidden marker, one table row per measurement, and the plan-match verdict (if judged) as a hidden marker so a refresh can keep it. */
 export function formatComment(rows) {
+  const verdict = rows.find((r) => r.metric === PLAN_MATCH_METRIC)?.value
   const lines = [
     MARKER,
     '### AI-SDLC metrics',
@@ -45,13 +44,12 @@ export function formatComment(rows) {
     `| ${FIELDS.join(' | ')} |`,
     `|${FIELDS.map(() => '---').join('|')}|`,
     ...rows.map((r) => `| ${FIELDS.map((f) => cell(r[f])).join(' | ')} |`),
+    ...(verdict ? ['', `<!-- plan-match: ${verdict} -->`] : []),
   ]
   return lines.join('\n') + '\n'
 }
 
 const hoursBetween = (from, to) => Math.round(((to - from) / HOUR) * 10) / 10
-
-// ---------------------------------------------------------------- stages
 
 export function stagesFor(files) {
   const stages = []
@@ -73,7 +71,6 @@ export function changeNumbers(files) {
   return [...nums].sort()
 }
 
-// ---------------------------------------------------------------- git-derived metrics
 // A commit is { sha, date: Date, subject }, oldest first.
 
 const first = (commits) => commits[0]
@@ -116,7 +113,6 @@ export function planApprovalCommit(planCommits, number) {
   return planCommits.find((c) => re.test(c.subject)) ?? null
 }
 
-// ---------------------------------------------------------------- PR-derived metrics
 // A pr is { number, author, state, createdAt, mergedAt, reviews: [{state, submittedAt}], commits: [{committedDate}] }.
 
 export function reviewRounds(pr) {
@@ -163,8 +159,6 @@ export function timeToFirstMergedPrHours(prs, author) {
   if (hours < 0) return { value: null, note: 'earliest visible commit is after the first merge' }
   return { value: hours, note: '' }
 }
-
-// ---------------------------------------------------------------- session metrics
 
 /** Reads one Claude Code transcript (.jsonl). Tolerates malformed lines and missing fields. */
 export function parseSession(text, fallbackId = '') {
@@ -251,8 +245,6 @@ export function sessionsDirFor(repoPath, env = process.env) {
   return path.join(root, repoPath.replace(/[^A-Za-z0-9]/g, '-'))
 }
 
-// ---------------------------------------------------------------- assembling rows
-
 /**
  * ctx: {
  *   capturedAt, files, intentStatuses, changes: { NNN: { intent, spec, plan } (commit lists) },
@@ -314,8 +306,6 @@ export function buildRows(ctx) {
   return rows
 }
 
-// ---------------------------------------------------------------- GitHub comment
-
 /**
  * All comments on a PR. `--slurp` wraps each page in an array, so a PR with several pages of comments
  * still parses; without it `gh` prints concatenated arrays and JSON.parse throws.
@@ -329,15 +319,7 @@ export function listComments(gh, repo, number) {
 export const findMetricsComment = (comments) => comments.find((c) => typeof c.body === 'string' && c.body.includes(MARKER))
 
 /** The plan-match verdict already recorded in a metrics comment, so a refresh does not wipe it. */
-export function planMatchFrom(body) {
-  const at = (cells, field) => cells[FIELDS.indexOf(field) + 1]
-  for (const line of (body ?? '').split('\n')) {
-    if (!line.startsWith('|')) continue
-    const cells = line.split(/(?<!\\)\|/).map((c) => c.trim())
-    if (at(cells, 'metric') === PLAN_MATCH_METRIC && at(cells, 'value')) return at(cells, 'value')
-  }
-  return undefined
-}
+export const planMatchFrom = (body) => /<!-- plan-match: (.+?) -->/.exec(body ?? '')?.[1]
 
 export function upsertComment(gh, repo, number, body, comments = listComments(gh, repo, number)) {
   const existing = findMetricsComment(comments)
@@ -348,22 +330,6 @@ export function upsertComment(gh, repo, number, body, comments = listComments(gh
   gh(['api', '-X', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`])
   return 'created'
 }
-
-/** Merged PRs whose metrics comment still says it is awaiting merge. A PR that cannot be read is skipped, not fatal. */
-export function findPendingPrs(gh, repo, prs) {
-  const pending = []
-  for (const pr of prs.filter((p) => p.mergedAt)) {
-    try {
-      const existing = findMetricsComment(listComments(gh, repo, pr.number))
-      if (existing?.body.includes(PENDING)) pending.push(pr.number)
-    } catch (e) {
-      console.error(`capture-metrics: could not read comments on PR ${pr.number}: ${e.message}`)
-    }
-  }
-  return pending
-}
-
-// ---------------------------------------------------------------- gathering real data
 
 const run = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 
@@ -434,8 +400,6 @@ export function gatherContext({ cwd, number, gh, planMatch, now = new Date() }) 
   return { repo, capturedAt: now.toISOString(), files, intentStatuses, changes, pr, prs, claudeMd, sessions, window, planMatch }
 }
 
-// ---------------------------------------------------------------- CLI
-
 /** An explicit planMatch wins; otherwise keep the verdict already in the comment. */
 export function runForPr(number, { cwd, gh, planMatch }) {
   const ctx = gatherContext({ cwd, number, gh })
@@ -446,54 +410,25 @@ export function runForPr(number, { cwd, gh, planMatch }) {
   return { outcome, rows: rows.length }
 }
 
-/** Refreshes merged PRs still awaiting values. One PR failing does not stop the rest. */
-export function catchUp({ cwd, gh }) {
-  const repo = gh(['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner']).trim()
-  const prs = JSON.parse(gh(['pr', 'list', '--state', 'merged', '--limit', '100', '--json', 'number,mergedAt'])).map((p) => ({ number: p.number, mergedAt: p.mergedAt }))
-  const done = []
-  for (const n of findPendingPrs(gh, repo, prs)) {
-    try {
-      runForPr(n, { cwd, gh })
-      done.push(n)
-    } catch (e) {
-      console.error(`capture-metrics: PR ${n} not refreshed: ${e.message}`)
-    }
-  }
-  return done
-}
-
-/** Runs the CLI and returns the exit code. A failure in --pr does not skip --catch-up. */
+/** Runs the CLI and returns the exit code (0 ok, 1 failure, 2 usage). */
 export function runCli(argv, { cwd, gh, log = console.log, err = console.error }) {
-  const args = { pr: null, catchUp: false, planMatch: undefined }
+  const args = { pr: null, planMatch: undefined }
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--pr') args.pr = argv[++i]
-    else if (argv[i] === '--catch-up') args.catchUp = true
     else if (argv[i] === '--plan-match') args.planMatch = argv[++i]
   }
-  if (!args.pr && !args.catchUp) {
-    err('usage: capture.mjs --pr <number> [--plan-match <match|minor drift|major drift>] [--catch-up]')
+  if (!args.pr) {
+    err('usage: capture.mjs --pr <number> [--plan-match <match|minor drift|major drift>]')
     return 2
   }
-  let code = 0
-  if (args.pr) {
-    try {
-      const r = runForPr(args.pr, { cwd, gh, planMatch: args.planMatch })
-      log(`PR ${args.pr}: comment ${r.outcome} (${r.rows} rows)`)
-    } catch (e) {
-      err(`capture-metrics: PR ${args.pr} failed: ${e.message}`)
-      code = 1
-    }
+  try {
+    const r = runForPr(args.pr, { cwd, gh, planMatch: args.planMatch })
+    log(`PR ${args.pr}: comment ${r.outcome} (${r.rows} rows)`)
+    return 0
+  } catch (e) {
+    err(`capture-metrics: PR ${args.pr} failed: ${e.message}`)
+    return 1
   }
-  if (args.catchUp) {
-    try {
-      const done = catchUp({ cwd, gh })
-      log(`catch-up: updated ${done.length} merged PR(s)${done.length ? ` (${done.join(', ')})` : ''}`)
-    } catch (e) {
-      err(`capture-metrics: catch-up failed: ${e.message}`)
-      code = 1
-    }
-  }
-  return code
 }
 
 function main(argv) {

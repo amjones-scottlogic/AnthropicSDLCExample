@@ -4,13 +4,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import {
   buildRows,
-  catchUp,
   changeNumbers,
   FIELDS,
-  findPendingPrs,
   firstImplementationShare,
   formatComment,
   gatherContext,
@@ -254,10 +252,10 @@ describe('session transcripts (Req 4)', () => {
   })
 })
 
-// ------------------------------------------------------------ comment upsert and catch-up
+// ------------------------------------------------------------ comment upsert
 
 /** A stand-in for the gh CLI that records writes and serves canned JSON. */
-function fakeGh({ comments = {}, pr = {}, prs = [], merged = [], failPr = [] } = {}) {
+function fakeGh({ comments = {}, pr = {}, prs = [], failPr = [] } = {}) {
   const calls = []
   const gh = (args) => {
     calls.push(args)
@@ -267,7 +265,7 @@ function fakeGh({ comments = {}, pr = {}, prs = [], merged = [], failPr = [] } =
       if (failPr.includes(Number(args[2]))) throw new Error(`gh failed for PR ${args[2]}`)
       return JSON.stringify(pr[args[2]])
     }
-    if (args[0] === 'pr' && args[1] === 'list') return JSON.stringify(args.includes('merged') ? merged : prs)
+    if (args[0] === 'pr' && args[1] === 'list') return JSON.stringify(prs)
     if (args[0] === 'api' && args[1].endsWith('/comments') && !args.includes('-X')) {
       const list = comments[args[1].split('/').at(-2)] ?? []
       // Like gh: with --slurp every page is its own array (two comments per page here); without it the pages are
@@ -348,54 +346,13 @@ describe('plan-match verdict survives a refresh', () => {
 })
 
 describe('failures are contained (Req 5)', () => {
-  const pending = [{ id: 1, body: `${MARKER}\n| x | ${PENDING} |` }]
-
-  it('catch-up refreshes the other PRs when one fails', () => {
+  it('exits 1 and reports when the PR cannot be read', () => {
     const cwd = makeRepo()
-    const mergedPr = (n) => prView(['plan/002-x.md', 'src/a.ts'], { number: n, state: 'MERGED', mergedAt: '2026-10-05T09:00:00Z' })
-    const { gh, writes } = fakeGh({
-      pr: { 7: mergedPr(7), 8: mergedPr(8) },
-      prs: [mergedPr(7)],
-      merged: [{ number: 7, mergedAt: '2026-10-05T09:00:00Z' }, { number: 8, mergedAt: '2026-10-05T09:00:00Z' }],
-      comments: { 7: pending, 8: [{ id: 2, body: `${MARKER}\n| x | ${PENDING} |` }] },
-      failPr: [7],
-    })
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    expect(catchUp({ cwd, gh })).toEqual([8])
-    expect(writes()).toHaveLength(1)
-    expect(writes()[0].join(' ')).toContain('issues/comments/2')
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining('PR 7 not refreshed'))
-    spy.mockRestore()
-  })
-
-  it('skips a PR whose comments cannot be read instead of stopping', () => {
-    const gh = (args) => {
-      if (args[1]?.includes('issues/7/')) throw new Error('boom')
-      return JSON.stringify([[{ id: 2, body: `${MARKER}\n| x | ${PENDING} |` }]])
-    }
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const prs = [{ number: 7, mergedAt: 'x' }, { number: 8, mergedAt: 'x' }]
-    expect(findPendingPrs(gh, 'o/r', prs)).toEqual([8])
-    spy.mockRestore()
-  })
-
-  it('still runs catch-up when --pr fails, and exits non-zero', () => {
-    const cwd = makeRepo()
-    const merged = prView(['plan/002-x.md', 'src/a.ts'], { number: 8, state: 'MERGED', mergedAt: '2026-10-05T09:00:00Z' })
-    const { gh, writes } = fakeGh({
-      pr: { 8: merged },
-      prs: [merged],
-      merged: [{ number: 8, mergedAt: merged.mergedAt }],
-      comments: { 8: [{ id: 2, body: `${MARKER}\n| x | ${PENDING} |` }] },
-      failPr: [7],
-    })
-    const logs = []
+    const { gh, writes } = fakeGh({ failPr: [7] })
     const errs = []
-    const code = runCli(['--pr', '7', '--catch-up'], { cwd, gh, log: (m) => logs.push(m), err: (m) => errs.push(m) })
-    expect(code).toBe(1)
+    expect(runCli(['--pr', '7'], { cwd, gh, log: () => {}, err: (m) => errs.push(m) })).toBe(1)
     expect(errs.join('\n')).toMatch(/PR 7 failed/)
-    expect(logs.join('\n')).toMatch(/updated 1 merged PR/)
-    expect(writes()).toHaveLength(1)
+    expect(writes()).toHaveLength(0)
   })
 
   it('exits 2 with usage when given nothing to do', () => {
@@ -498,23 +455,5 @@ describe('end to end against a throwaway repo (Req 3)', () => {
     expect(r.outcome).toBe('created')
     expect(writes()).toHaveLength(1)
     expect(writes()[0].join(' ')).toContain(MARKER)
-  })
-})
-
-describe('catch-up (Req 6)', () => {
-  it('refreshes only merged PRs whose comment is still awaiting merge', () => {
-    const cwd = makeRepo()
-    const mergedPr = prView(['plan/002-x.md', 'src/a.ts'], { number: 7, state: 'MERGED', mergedAt: '2026-10-05T09:00:00Z' })
-    const stale = [{ id: 9, body: `${MARKER}\n| x | ${PENDING} |` }]
-    const fresh = [{ id: 10, body: `${MARKER}\n| x | done |` }]
-    const { gh, writes } = fakeGh({
-      pr: { 7: mergedPr, 8: { ...mergedPr, number: 8 } },
-      prs: [mergedPr],
-      merged: [{ number: 7, mergedAt: mergedPr.mergedAt }, { number: 8, mergedAt: mergedPr.mergedAt }],
-      comments: { 7: stale, 8: fresh },
-    })
-    expect(catchUp({ cwd, gh })).toEqual([7])
-    expect(writes()).toHaveLength(1)
-    expect(writes()[0].join(' ')).toContain('issues/comments/9')
   })
 })
