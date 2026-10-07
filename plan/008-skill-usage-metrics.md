@@ -77,7 +77,10 @@ Done means: lint, typecheck, test, build and `check:offline` pass, the step 8 re
 None.
 
 ## Deviations
-None.
+2026-10-07:
+- **Added `metrics.md` at the repository root.** Requested by the product owner during the build: a brief file explaining what is captured. The plan said no new files other than the plan. It describes the existing metrics comment and the new skill and token rows, and links to `AI-SDLC.md` and the skill for the definitions.
+- **`parseSession` ignores a transcript line that parses to something other than an object** (for example a bare `null`). The new malformed-lines test showed such a line made the whole file unreadable, so a transcript with one stray `null` would have contributed nothing.
+- **Tokens are written under `notes` as `<contributor>; <model>; <type>; counted by branch`**, as planned; the tests read the model and type back from there.
 
 ## Verification
 1. `npm run lint && npm run typecheck && npm test && npm run build && npm run check:offline`.

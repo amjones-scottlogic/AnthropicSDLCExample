@@ -160,13 +160,49 @@ export function timeToFirstMergedPrHours(prs, author) {
   return { value: hours, note: '' }
 }
 
-/** Reads one Claude Code transcript (.jsonl). Tolerates malformed lines and missing fields. */
-export function parseSession(text, fallbackId = '') {
+export const TOKEN_TYPES = {
+  input_tokens: 'input',
+  output_tokens: 'output',
+  cache_read_input_tokens: 'cache read',
+  cache_creation_input_tokens: 'cache write',
+}
+
+const emptyBranch = () => ({ skills: {}, tokens: {} })
+const bump = (obj, key, n) => {
+  obj[key] = (obj[key] ?? 0) + n
+}
+
+/** Folded into one session's byBranch: skill counts by name and token totals by "model|type". */
+export function mergeByBranch(into, from) {
+  for (const [branch, data] of Object.entries(from ?? {})) {
+    const target = (into[branch] ??= emptyBranch())
+    for (const [k, n] of Object.entries(data.skills)) bump(target.skills, k, n)
+    for (const [k, n] of Object.entries(data.tokens)) bump(target.tokens, k, n)
+  }
+  return into
+}
+
+const COMMAND_NAME = /<command-name>\/([^<\s]+)<\/command-name>/
+
+function typedCommand(e) {
+  const content = e.message?.content
+  const text = typeof content === 'string' ? content : Array.isArray(content) ? content.filter((p) => p?.type === 'text').map((p) => p.text).join('\n') : ''
+  return COMMAND_NAME.exec(text)?.[1]
+}
+
+/**
+ * Reads one Claude Code transcript (.jsonl). Tolerates malformed lines and missing fields.
+ * repoSkills is the set of skill names defined in the repository: any other skill is dropped here, so its name never reaches a row.
+ */
+export function parseSession(text, fallbackId = '', repoSkills = new Set()) {
   let id = fallbackId
   let firstTs = null
   let lastTs = null
   let firstHuman = null
   const written = new Set()
+  const byBranch = {}
+  const seenMessages = new Set()
+  const seenToolUses = new Set()
   for (const line of text.split('\n')) {
     if (!line.trim()) continue
     let e
@@ -175,6 +211,7 @@ export function parseSession(text, fallbackId = '') {
     } catch {
       continue
     }
+    if (!e || typeof e !== 'object') continue
     if (e.sessionId) id = e.sessionId
     const ts = e.timestamp ? new Date(e.timestamp) : null
     if (ts && !Number.isNaN(ts.getTime())) {
@@ -182,17 +219,51 @@ export function parseSession(text, fallbackId = '') {
       if (!lastTs || ts > lastTs) lastTs = ts
       if (e.type === 'user' && e.origin?.kind === 'human' && (!firstHuman || ts < firstHuman)) firstHuman = ts
     }
+    const branch = (byBranch[e.gitBranch ?? ''] ??= emptyBranch())
     const content = e.message?.content
     if (Array.isArray(content)) {
       for (const part of content) {
         if (part?.type === 'tool_use' && (part.name === 'Write' || part.name === 'Edit') && part.input?.file_path) {
           written.add(String(part.input.file_path).replace(/\\/g, '/'))
         }
+        if (part?.type === 'tool_use' && part.name === 'Skill' && repoSkills.has(part.input?.skill) && !seenToolUses.has(part.id)) {
+          if (part.id) seenToolUses.add(part.id)
+          bump(branch.skills, part.input.skill, 1)
+        }
+      }
+    }
+    if (e.type === 'user') {
+      const typed = typedCommand(e)
+      if (typed && repoSkills.has(typed)) bump(branch.skills, typed, 1)
+    }
+    // A transcript repeats a message's usage on each of its lines; count it once per message id.
+    const usage = e.type === 'assistant' ? e.message?.usage : null
+    if (usage && !(e.message.id && seenMessages.has(e.message.id))) {
+      if (e.message.id) seenMessages.add(e.message.id)
+      const model = e.message.model ?? 'unknown'
+      for (const [field, type] of Object.entries(TOKEN_TYPES)) {
+        if (Number.isFinite(usage[field])) bump(branch.tokens, `${model}|${type}`, usage[field])
       }
     }
   }
   if (!firstTs) return null
-  return { id, first: firstTs, last: lastTs, firstHuman: firstHuman ?? firstTs, written: [...written] }
+  return { id, first: firstTs, last: lastTs, firstHuman: firstHuman ?? firstTs, written: [...written], byBranch }
+}
+
+/** Skill folders defined in the repository: .claude/skills/NAME/SKILL.md. */
+export function repoSkills(cwd) {
+  const dir = path.join(cwd, '.claude', 'skills')
+  if (!existsSync(dir)) return new Set()
+  return new Set(readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(path.join(dir, d.name, 'SKILL.md'))).map((d) => d.name))
+}
+
+/** One branch's skill counts and token totals summed over every session. Null when no session has an entry on it. */
+export function branchTotals(sessions, branch) {
+  const merged = {}
+  for (const s of sessions) {
+    if (s.byBranch?.[branch]) mergeByBranch(merged, { [branch]: s.byBranch[branch] })
+  }
+  return merged[branch] ?? null
 }
 
 export function timeToIntentHours(sessions, number, intentCommit) {
@@ -225,14 +296,27 @@ export function peakConcurrentSessions(sessions, from, to) {
   return peak
 }
 
-export function loadSessions(dir) {
+export function loadSessions(dir, skills = new Set()) {
   if (!dir || !existsSync(dir)) return null
   const sessions = []
   for (const f of readdirSync(dir)) {
     if (!f.endsWith('.jsonl')) continue
+    const sessionId = f.replace(/\.jsonl$/, '')
     try {
-      const s = parseSession(readFileSync(path.join(dir, f), 'utf8'), f.replace(/\.jsonl$/, ''))
-      if (s) sessions.push(s)
+      const s = parseSession(readFileSync(path.join(dir, f), 'utf8'), sessionId, skills)
+      if (!s) continue
+      // A subagent's activity is in its own file beside the parent, not in the parent's transcript.
+      const subDir = path.join(dir, sessionId, 'subagents')
+      if (existsSync(subDir)) {
+        for (const sf of readdirSync(subDir).filter((x) => x.endsWith('.jsonl'))) {
+          try {
+            mergeByBranch(s.byBranch, parseSession(readFileSync(path.join(subDir, sf), 'utf8'), sf, skills)?.byBranch)
+          } catch {
+            // unreadable subagent file: skip it
+          }
+        }
+      }
+      sessions.push(s)
     } catch {
       // unreadable file: skip it
     }
@@ -303,7 +387,74 @@ export function buildRows(ctx) {
     }
     num('Build', PLAN_MATCH_METRIC, 'lagging', `PR ${pr.number}`, ctx.planMatch ?? null, 'verdict', 'session', 'not yet judged: run /capture-metrics and ask plan-reviewer')
   }
+  if (ctx.pr && ctx.branch !== undefined) rows.push(...usageRows(ctx, stages))
   return rows
+}
+
+export const SKILL_METRIC = 'Skill invocations'
+export const TOKEN_METRIC = 'Tokens'
+export const NO_DATA = 'no session data captured'
+const USAGE_METRICS = new Set([SKILL_METRIC, TOKEN_METRIC])
+
+/** Who a skill or token row belongs to: the text before the first ";" in its notes. */
+export const contributorOf = (row) => String(row.notes ?? '').split(';')[0].trim()
+
+/** The running contributor's skill and token rows for the PR's branch. Only names, counts, the model and the git author name are written. */
+export function usageRows(ctx, stages) {
+  const who = ctx.contributor || 'unknown'
+  const base = { capturedAt: ctx.capturedAt, stage: stages.join(' + ') || 'n/a', kind: 'leading', change: `PR ${ctx.pr.number}`, source: 'session' }
+  const noData = (why) => makeRow({ ...base, metric: SKILL_METRIC, value: null, unit: 'invocations', notes: `${who}; ${NO_DATA}; ${why}` })
+  if (!ctx.sessions) return [noData('transcripts not found on this machine')]
+  const totals = branchTotals(ctx.sessions, ctx.branch)
+  if (!totals) return [noData('no session on this branch on this machine')]
+  const rows = []
+  const skills = Object.entries(totals.skills).sort(([a], [b]) => a.localeCompare(b))
+  if (skills.length === 0) {
+    rows.push(makeRow({ ...base, metric: SKILL_METRIC, value: 0, unit: 'invocations', notes: `${who}; none used; counted by branch` }))
+  }
+  for (const [name, n] of skills) {
+    rows.push(makeRow({ ...base, metric: SKILL_METRIC, value: n, unit: 'invocations', notes: `${who}; skill: ${name}; counted by branch` }))
+  }
+  for (const [key, n] of Object.entries(totals.tokens).sort(([a], [b]) => a.localeCompare(b))) {
+    const [model, type] = key.split('|')
+    rows.push(makeRow({ ...base, metric: TOKEN_METRIC, value: n, unit: 'tokens', notes: `${who}; ${model}; ${type}; counted by branch` }))
+  }
+  return rows
+}
+
+/** The table rows of an existing metrics comment, read back as row objects. */
+export function parseComment(body) {
+  const rows = []
+  for (const line of String(body ?? '').split('\n')) {
+    if (!line.startsWith('|') || /^\|[-|\s]+\|?$/.test(line)) continue
+    const cells = line.slice(1, line.lastIndexOf('|')).split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'))
+    if (cells.length !== FIELDS.length || cells[0] === FIELDS[0]) continue
+    rows.push(Object.fromEntries(FIELDS.map((f, i) => [f, cells[i]])))
+  }
+  return rows
+}
+
+const isPlaceholder = (r) => r.metric === SKILL_METRIC && r.value === '' && r.notes.includes(NO_DATA)
+
+/**
+ * Other contributors' skill and token rows survive a run; the runner's are replaced. A "no session data captured"
+ * placeholder goes once its contributor has real rows. Every other row is the fresh one.
+ */
+export function mergeContributorRows(existing, fresh, runner) {
+  const kept = existing.filter((r) => USAGE_METRICS.has(r.metric) && contributorOf(r) !== runner)
+  const usage = [...kept, ...fresh.filter((r) => USAGE_METRICS.has(r.metric))]
+  const withData = new Set(usage.filter((r) => !isPlaceholder(r)).map(contributorOf))
+  return [...fresh.filter((r) => !USAGE_METRICS.has(r.metric)), ...usage.filter((r) => !isPlaceholder(r) || !withData.has(contributorOf(r)))]
+}
+
+/** A git author on the PR with no skill row at all gets an explicit empty one, so a gap is not read as zero use. */
+export function addMissingAuthors(rows, authors, ctx) {
+  const have = new Set(rows.filter((r) => r.metric === SKILL_METRIC).map(contributorOf))
+  const stage = stagesFor(ctx.files).join(' + ') || 'n/a'
+  const extra = [...new Set(authors)]
+    .filter((a) => a && !have.has(a))
+    .map((a) => makeRow({ capturedAt: ctx.capturedAt, stage, metric: SKILL_METRIC, kind: 'leading', change: `PR ${ctx.pr.number}`, value: null, unit: 'invocations', source: 'session', notes: `${a}; ${NO_DATA}` }))
+  return [...rows, ...extra]
 }
 
 /**
@@ -395,9 +546,16 @@ export function gatherContext({ cwd, number, gh, planMatch, now = new Date() }) 
     base: readClaude('origin/main') || readClaude('main'),
     head: existsSync(path.join(cwd, 'CLAUDE.md')) ? readFileSync(path.join(cwd, 'CLAUDE.md'), 'utf8') : '',
   }
-  const sessions = loadSessions(sessionsDirFor(cwd))
+  const sessions = loadSessions(sessionsDirFor(cwd), repoSkills(cwd))
+  let contributor = ''
+  try {
+    contributor = run('git', ['config', 'user.name'], cwd).trim()
+  } catch {
+    // no git user.name: rows are labelled "unknown"
+  }
+  const authors = [...new Set(pr.commits.map((c) => c.authors?.[0]?.name).filter(Boolean))]
   const window = { from: new Date(pr.createdAt ? new Date(pr.createdAt).getTime() - 7 * 24 * HOUR : now.getTime() - 7 * 24 * HOUR), to: now }
-  return { repo, capturedAt: now.toISOString(), files, intentStatuses, changes, pr, prs, claudeMd, sessions, window, planMatch }
+  return { repo, capturedAt: now.toISOString(), files, intentStatuses, changes, pr, prs, claudeMd, sessions, window, planMatch, branch: pr.headRefName ?? '', contributor, authors }
 }
 
 /** An explicit planMatch wins; otherwise keep the verdict already in the comment. */
@@ -405,7 +563,8 @@ export function runForPr(number, { cwd, gh, planMatch }) {
   const ctx = gatherContext({ cwd, number, gh })
   const comments = listComments(gh, ctx.repo, number)
   ctx.planMatch = planMatch ?? planMatchFrom(findMetricsComment(comments)?.body)
-  const rows = buildRows(ctx)
+  const existing = parseComment(findMetricsComment(comments)?.body)
+  const rows = addMissingAuthors(mergeContributorRows(existing, buildRows(ctx), ctx.contributor || 'unknown'), ctx.authors, ctx)
   const outcome = upsertComment(gh, ctx.repo, number, formatComment(rows), comments)
   return { outcome, rows: rows.length }
 }

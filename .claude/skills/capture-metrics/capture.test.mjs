@@ -4,8 +4,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import {
+  addMissingAuthors,
   buildRows,
   changeNumbers,
   FIELDS,
@@ -18,7 +19,10 @@ import {
   loadSessions,
   makeRow,
   MARKER,
+  mergeContributorRows,
   mistakesListed,
+  NO_DATA,
+  parseComment,
   parseSession,
   peakConcurrentSessions,
   PENDING,
@@ -26,14 +30,18 @@ import {
   PLAN_MATCH_METRIC,
   planMatchFrom,
   planApprovalToMergeHours,
+  repoSkills,
   reviewRounds,
   runCli,
   runForPr,
+  sessionsDirFor,
   shareAccepted,
+  SKILL_METRIC,
   specCommitsAfterPlan,
   stagesFor,
   timeToFirstMergedPrHours,
   timeToIntentHours,
+  TOKEN_METRIC,
   upsertComment,
 } from './capture.mjs'
 
@@ -455,5 +463,169 @@ describe('end to end against a throwaway repo (Req 3)', () => {
     expect(r.outcome).toBe('created')
     expect(writes()).toHaveLength(1)
     expect(writes()[0].join(' ')).toContain(MARKER)
+  })
+})
+
+// ------------------------------------------------------------ skill usage and tokens (spec 008)
+
+describe('skill usage and tokens (spec 008)', () => {
+  afterEach(() => {
+    delete process.env.CLAUDE_PROJECTS_DIR
+  })
+
+  const BRANCH = 'build/002-x'
+  const tl = (o) => JSON.stringify({ sessionId: 's1', timestamp: '2026-10-03T10:00:00Z', gitBranch: BRANCH, ...o })
+  const usage = { input_tokens: 1, output_tokens: 2, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 }
+  const call = (id, skill, o = {}) =>
+    tl({ type: 'assistant', message: { id: `m${id}`, model: 'm1', content: [{ type: 'tool_use', id: `t${id}`, name: 'Skill', input: { skill } }], usage }, ...o })
+
+  /** A throwaway repo with repository skills, a fake transcripts folder and a stub gh. Returns what a run posted. */
+  function world({ sessions = {}, comments = [], authors = ['Amy'], runner = 'Amy', skills = ['plan', 'write-spec'], withProjectDir = true } = {}) {
+    const cwd = makeRepo()
+    for (const s of skills) {
+      mkdirSync(path.join(cwd, '.claude', 'skills', s), { recursive: true })
+      writeFileSync(path.join(cwd, '.claude', 'skills', s, 'SKILL.md'), '# s\n')
+    }
+    execFileSync('git', ['config', 'user.name', runner], { cwd })
+    process.env.CLAUDE_PROJECTS_DIR = mkdtempSync(path.join(tmp, 'projects-'))
+    if (withProjectDir) {
+      const dir = sessionsDirFor(cwd)
+      for (const [name, text] of Object.entries(sessions)) {
+        mkdirSync(path.dirname(path.join(dir, name)), { recursive: true })
+        writeFileSync(path.join(dir, name), text)
+      }
+    }
+    const view = prView(['spec/002-x.md'], { commits: authors.map((a) => ({ committedDate: '2026-10-03T09:00:00Z', authors: [{ name: a }, { name: 'Claude Sonnet 5.5' }] })) })
+    const { gh, writes } = fakeGh({ pr: { 7: view }, prs: [view], comments: { 7: comments } })
+    return {
+      run: () => {
+        runForPr(7, { cwd, gh })
+        const body = writes().at(-1).at(-1).replace(/^body=/, '')
+        return { body, rows: parseComment(body) }
+      },
+    }
+  }
+  const skillRows = (rows) =>
+    Object.fromEntries(rows.filter((r) => r.metric === SKILL_METRIC && r.value !== '').map((r) => [r.notes.split('; skill: ')[1]?.split(';')[0] ?? r.notes, Number(r.value)]))
+  const tokenRows = (rows) => Object.fromEntries(rows.filter((r) => r.metric === TOKEN_METRIC).map((r) => [r.notes.split('; ')[2], Number(r.value)]))
+  const usageRow = (who, metric, notes, value) =>
+    makeRow({ capturedAt: 'then', stage: 'Design', metric, kind: 'leading', change: 'PR 7', value, unit: 'u', source: 'session', notes: `${who}; ${notes}` })
+
+  it('counts repository skills per name across sessions, excluding other branches', () => {
+    const w = world({
+      sessions: {
+        's1.jsonl': [call(1, 'plan'), call(2, 'plan'), call(3, 'write-spec'), call(4, 'plan', { gitBranch: 'main' })].join('\n'),
+        's2.jsonl': call(5, 'plan', { sessionId: 's2' }),
+      },
+    })
+    expect(skillRows(w.run().rows)).toEqual({ plan: 3, 'write-spec': 1 })
+  })
+
+  it('counts entries made before the first commit on the branch', () => {
+    const w = world({ sessions: { 's1.jsonl': call(1, 'plan', { timestamp: '2020-01-01T00:00:00Z' }) } })
+    expect(skillRows(w.run().rows)).toEqual({ plan: 1 })
+  })
+
+  it('drops personal, plugin and built-in skills before they reach the comment', () => {
+    const w = world({ sessions: { 's1.jsonl': [call(1, 'plan'), call(2, 'my-personal-skill'), call(3, 'plugin:thing'), call(4, 'code-review')].join('\n') } })
+    const { body, rows } = w.run()
+    expect(skillRows(rows)).toEqual({ plan: 1 })
+    expect(body).not.toMatch(/my-personal-skill|plugin:thing|code-review/)
+  })
+
+  it('only treats a folder with a SKILL.md as a repository skill', () => {
+    const cwd = makeRepo()
+    mkdirSync(path.join(cwd, '.claude', 'skills', 'real'), { recursive: true })
+    writeFileSync(path.join(cwd, '.claude', 'skills', 'real', 'SKILL.md'), '# s\n')
+    mkdirSync(path.join(cwd, '.claude', 'skills', 'empty'), { recursive: true })
+    expect([...repoSkills(cwd)]).toEqual(['real'])
+    expect(repoSkills(path.join(tmp, 'no-such-repo')).size).toBe(0)
+  })
+
+  it('counts a repository skill started by a typed slash command', () => {
+    const typed = tl({ type: 'user', message: { role: 'user', content: '<command-name>/plan</command-name>\n<command-args>008</command-args>' } })
+    expect(skillRows(world({ sessions: { 's1.jsonl': typed } }).run().rows)).toEqual({ plan: 1 })
+  })
+
+  it('totals tokens by type, counting a repeated message id once', () => {
+    const w = world({ sessions: { 's1.jsonl': [call(1, 'plan'), call(1, 'plan'), call(2, 'write-spec')].join('\n') } })
+    const rows = w.run().rows
+    expect(tokenRows(rows)).toEqual({ input: 2, output: 4, 'cache read': 6, 'cache write': 8 })
+    expect(skillRows(rows)).toEqual({ plan: 1, 'write-spec': 1 })
+    expect(rows.find((r) => r.metric === TOKEN_METRIC).notes).toMatch(/^Amy; m1; /)
+  })
+
+  it('counts a subagent file with the session that started it', () => {
+    const w = world({ sessions: { 's1.jsonl': call(1, 'plan'), 's1/subagents/agent-a.jsonl': [call(2, 'write-spec', { isSidechain: true }), 'not json'].join('\n') } })
+    const rows = w.run().rows
+    expect(skillRows(rows)).toEqual({ plan: 1, 'write-spec': 1 })
+    expect(tokenRows(rows).input).toBe(2)
+  })
+
+  it('writes one row with 0 when sessions used no repository skill', () => {
+    const w = world({ sessions: { 's1.jsonl': tl({ type: 'user', message: { content: 'hello' } }) } })
+    const r = w.run().rows.find((x) => x.metric === SKILL_METRIC)
+    expect(r.value).toBe('0')
+    expect(r.notes).toMatch(/none used; counted by branch/)
+  })
+
+  it('leaves the value empty with a note, never 0, when transcripts are not found', () => {
+    const r = world({ withProjectDir: false }).run().rows.find((x) => x.metric === SKILL_METRIC)
+    expect(r.value).toBe('')
+    expect(r.notes).toMatch(/Amy; no session data captured; transcripts not found/)
+  })
+
+  it('gives every skill and token row the nine fields, the contributor and the by-branch note', () => {
+    const rows = world({ sessions: { 's1.jsonl': call(1, 'plan') } }).run().rows.filter((r) => r.metric === SKILL_METRIC || r.metric === TOKEN_METRIC)
+    expect(rows.length).toBeGreaterThan(1)
+    for (const r of rows) {
+      expect(Object.keys(r)).toEqual(FIELDS)
+      expect(r.source).toBe('session')
+      expect(r.change).toBe('PR 7')
+      expect(r.notes).toMatch(/^Amy; .*counted by branch$/)
+    }
+  })
+
+  it('replaces the runner rows on a re-run without duplicates, and keeps another contributor', () => {
+    const old = [usageRow('Amy', SKILL_METRIC, 'skill: plan; counted by branch', 99), usageRow('Sam', SKILL_METRIC, 'skill: plan; counted by branch', 5), usageRow('Sam', TOKEN_METRIC, 'm1; input; counted by branch', 50)]
+    const w = world({ authors: ['Amy', 'Sam'], comments: [{ id: 9, body: formatComment(old) }], sessions: { 's1.jsonl': call(1, 'plan') } })
+    const rows = w.run().rows
+    const plan = rows.filter((r) => r.metric === SKILL_METRIC && r.notes.includes('skill: plan'))
+    expect(plan.map((r) => [r.notes.split(';')[0], r.value]).sort()).toEqual([['Amy', '1'], ['Sam', '5']])
+    expect(rows.find((r) => r.metric === TOKEN_METRIC && r.notes.startsWith('Sam')).value).toBe('50')
+  })
+
+  it('gives a git author with no rows a "no session data captured" row, and ignores co-authors', () => {
+    const rows = world({ authors: ['Amy', 'Sam'], sessions: { 's1.jsonl': call(1, 'plan') } }).run().rows
+    const sam = rows.filter((r) => r.metric === SKILL_METRIC && r.notes.startsWith('Sam'))
+    expect(sam).toHaveLength(1)
+    expect(sam[0].value).toBe('')
+    expect(sam[0].notes).toContain(NO_DATA)
+    expect(rows.some((r) => r.notes.startsWith('Claude'))).toBe(false)
+  })
+
+  it('drops a placeholder once its contributor has real rows', () => {
+    const placeholder = usageRow('Sam', SKILL_METRIC, NO_DATA, null)
+    const real = usageRow('Sam', SKILL_METRIC, 'skill: plan; counted by branch', 2)
+    expect(mergeContributorRows([placeholder], [real], 'Sam').map((r) => r.value)).toEqual(['2'])
+    expect(mergeContributorRows([placeholder], [], 'Amy')).toHaveLength(1)
+    expect(addMissingAuthors([real], ['Sam'], { files: ['spec/002-x.md'], capturedAt: 't', pr: { number: 7 } })).toHaveLength(1)
+  })
+
+  it('reads a comment back, including a pipe in a cell', () => {
+    const rows = [makeRow({ capturedAt: 't', stage: 'Design', metric: 'm', kind: 'leading', change: 'c', value: 3, unit: 'u', source: 'session', notes: 'a | b' })]
+    expect(parseComment(formatComment(rows))).toEqual(rows)
+    expect(parseComment(undefined)).toEqual([])
+  })
+
+  it('never posts transcript text or a skill that is not in the repository', () => {
+    const secret = tl({ type: 'user', message: { content: 'ZEBRA-SECRET-PROMPT in my private notes' } })
+    const w = world({ sessions: { 's1.jsonl': [secret, call(1, 'plan'), call(2, 'my-personal-skill')].join('\n') } })
+    expect(w.run().body).not.toMatch(/ZEBRA-SECRET-PROMPT|private notes|my-personal-skill/)
+  })
+
+  it('skips malformed transcript lines without failing', () => {
+    const w = world({ sessions: { 's1.jsonl': ['{broken', call(1, 'plan'), '', 'null'].join('\n') } })
+    expect(skillRows(w.run().rows)).toEqual({ plan: 1 })
   })
 })
