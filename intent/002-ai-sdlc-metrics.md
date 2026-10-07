@@ -10,7 +10,7 @@ Each stage of the AI-native SDLC has leading and lagging metrics, and nothing in
 - The raw data is recorded, not just summaries, so it can easily be displayed as charts and graphs later.
 - For now, a skill captures all the metrics we define, taking them from git history where possible.
 - Metrics that can't be taken from git history (for example time from first conversation to intent, concurrent sessions, time spent orchestrating rather than waiting) are gathered from Claude session stats.
-- The skill runs locally at the end of each stage, triggered by a Claude Code hook when Claude opens a pull request. The metrics are committed on the branch before the PR is opened, so they arrive with the change and CI runs on them.
+- The skill runs locally at the end of each stage, triggered by a Claude Code hook when Claude opens a pull request. The metrics are posted as a comment on that PR.
 
 ## Affected users and systems
 - Users: just me.
@@ -19,11 +19,12 @@ Each stage of the AI-native SDLC has leading and lagging metrics, and nothing in
 ## Constraints
 - Keep it simple: no extra tooling unless we have to.
 - Use git history as the source wherever possible.
-- Store raw data as CSV files in `metrics/`, in a form that is easy to turn into charts and graphs.
+- Record raw data in a form that is easy to turn into charts and graphs.
 - Displaying charts and graphs is out of scope here; that is a later intent.
 
 ## Open questions
 - What Claude session data is actually available to read, and does it cover the metrics git can't (concurrent sessions, orchestrating versus waiting, time from first conversation to intent)?
 - Does one PR open mark the end of every stage, given that intents, specs and plans each arrive in their own PR? PRs opened by the `write-spec` Action don't fire a local hook.
-- Some metrics (time from plan approval to merged PR, rework cycles after the PR is opened) can't be known before the PR exists. How are they captured?
+- Some metrics (time from plan approval to merged PR, rework cycles after the PR is opened) can't be known when the PR is opened. How are they captured?
+- The comment on each PR is the record. What format makes it easy to collect those comments for charting later?
 - Deploy metrics are still to be defined in `AI-SDLC.md`, so none can be captured for that stage yet.
