@@ -1,5 +1,5 @@
 # Intent: Give Claude a feedback loop
-Author: Andrew Jones (originator and sole user). Status: draft.
+Author: Andrew Jones (originator and sole user). Status: accepted.
 
 ## Problem
 Claude can run lint, typecheck, test and build here, but nothing tells it to do so before it says a piece of work is done, or what a pass looks like. `CLAUDE.md` lists the commands and CI runs them, so a red build is usually found after the work is handed over rather than by Claude itself. Claude can also make a failing test pass by changing the test instead of the code, and nothing stops that. For the UI there is no way for Claude to look at what it has built, so visual problems are only found when I open the app.
