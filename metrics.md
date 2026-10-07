@@ -23,7 +23,7 @@ A table with one row per measurement and the fields `captured_at`, `stage`, `met
 
 - **Repository skills only.** Skills defined under `.claude/skills/` are counted. Personal, plugin and built-in skills are not.
 - **By contributor.** Transcripts stay on each person's machine, so each run records its own sessions, labelled with the git author name in `notes`. A PR author with no rows is marked `no session data captured`.
-- **Privacy.** Only counts and names are posted: skill names, model names, token totals, the branch and the git author name. Prompts, replies and code from transcripts are never posted.
+- **Privacy.** Only counts and names are posted: skill names, model names, token totals and the git author name. Prompts, replies and code from transcripts are never posted.
 - **Approximate.** Branch attribution misses work done in a session that never touched the branch, and the session metrics depend on Claude Code's transcript format.
 - **Not yet captured:** time spent orchestrating rather than waiting, and Deploy metrics, which are not yet defined.
 - **Charts** are a later intent. This only records the data.

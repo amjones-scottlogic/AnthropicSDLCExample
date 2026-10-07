@@ -387,7 +387,7 @@ export function buildRows(ctx) {
     }
     num('Build', PLAN_MATCH_METRIC, 'lagging', `PR ${pr.number}`, ctx.planMatch ?? null, 'verdict', 'session', 'not yet judged: run /capture-metrics and ask plan-reviewer')
   }
-  if (ctx.pr && ctx.branch !== undefined) rows.push(...usageRows(ctx, stages))
+  if (ctx.pr && ctx.branch) rows.push(...usageRows(ctx, stages))
   return rows
 }
 
@@ -398,6 +398,9 @@ const USAGE_METRICS = new Set([SKILL_METRIC, TOKEN_METRIC])
 
 /** Who a skill or token row belongs to: the text before the first ";" in its notes. */
 export const contributorOf = (row) => String(row.notes ?? '').split(';')[0].trim()
+
+/** A name safe to put first in notes: ";" separates the fields there, so it is replaced. */
+export const safeName = (name) => String(name ?? '').replace(/[;\r\n]+/g, ',').trim()
 
 /** The running contributor's skill and token rows for the PR's branch. Only names, counts, the model and the git author name are written. */
 export function usageRows(ctx, stages) {
@@ -441,8 +444,13 @@ const isPlaceholder = (r) => r.metric === SKILL_METRIC && r.value === '' && r.no
  * placeholder goes once its contributor has real rows. Every other row is the fresh one.
  */
 export function mergeContributorRows(existing, fresh, runner) {
-  const kept = existing.filter((r) => USAGE_METRICS.has(r.metric) && contributorOf(r) !== runner)
-  const usage = [...kept, ...fresh.filter((r) => USAGE_METRICS.has(r.metric))]
+  const freshUsage = fresh.filter((r) => USAGE_METRICS.has(r.metric))
+  // A run with no data (another machine, cleared transcripts) must not erase rows an earlier run captured.
+  const noNewData = freshUsage.every(isPlaceholder)
+  const hasEarlierData = existing.some((r) => USAGE_METRICS.has(r.metric) && contributorOf(r) === runner && !isPlaceholder(r))
+  const keepRunner = noNewData && hasEarlierData
+  const kept = existing.filter((r) => USAGE_METRICS.has(r.metric) && (keepRunner || contributorOf(r) !== runner))
+  const usage = [...kept, ...(keepRunner ? [] : freshUsage)]
   const withData = new Set(usage.filter((r) => !isPlaceholder(r)).map(contributorOf))
   return [...fresh.filter((r) => !USAGE_METRICS.has(r.metric)), ...usage.filter((r) => !isPlaceholder(r) || !withData.has(contributorOf(r)))]
 }
@@ -553,7 +561,8 @@ export function gatherContext({ cwd, number, gh, planMatch, now = new Date() }) 
   } catch {
     // no git user.name: rows are labelled "unknown"
   }
-  const authors = [...new Set(pr.commits.map((c) => c.authors?.[0]?.name).filter(Boolean))]
+  const authors = [...new Set(pr.commits.map((c) => safeName(c.authors?.[0]?.name)).filter(Boolean))]
+  contributor = safeName(contributor)
   const window = { from: new Date(pr.createdAt ? new Date(pr.createdAt).getTime() - 7 * 24 * HOUR : now.getTime() - 7 * 24 * HOUR), to: now }
   return { repo, capturedAt: now.toISOString(), files, intentStatuses, changes, pr, prs, claudeMd, sessions, window, planMatch, branch: pr.headRefName ?? '', contributor, authors }
 }

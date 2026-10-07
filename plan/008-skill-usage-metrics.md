@@ -80,6 +80,14 @@ None.
 2026-10-07:
 - **Added `metrics.md` at the repository root.** Requested by the product owner during the build: a brief file explaining what is captured. The plan said no new files other than the plan. It describes the existing metrics comment and the new skill and token rows, and links to `AI-SDLC.md` and the skill for the definitions.
 - **`parseSession` ignores a transcript line that parses to something other than an object** (for example a bare `null`). The new malformed-lines test showed such a line made the whole file unreadable, so a transcript with one stray `null` would have contributed nothing.
+- **Fixes from the plan-reviewer agent's review of the build commit:**
+  - Contributor names are made safe before use: `;` (the field separator in `notes`) is replaced with `,` by a new `safeName`, applied to the runner and the commit authors in `gatherContext`. Before, a name like `Smith; Jr` was read back as `Smith`, so a re-run duplicated its rows and left a permanent placeholder.
+  - A run with no data (another machine, cleared transcripts) keeps the runner's earlier real rows instead of replacing them with a `no session data captured` row. The spec says a run replaces its own rows, so this narrows requirement 7: replacement only happens when the run has data.
+  - Skill and token rows need a non-empty branch name, not just a defined one. The plan said an entry with no branch is never matched.
+  - `SKILL.md`: a blank line split the metrics table, so the two new rows rendered as loose text; removed. Their stage column now says `PR's stages`, which is what the code writes. `SKILL.md` and `metrics.md` no longer say the branch name is posted: only "counted by branch" is.
+  - Tests added for each, plus the `no session on this branch` case, a typed command for a non-repository skill, and an idempotent double run.
+- **Where the plan's steps landed.** The "no data" row for authors is added by `addMissingAuthors`, called from `runForPr`, not in `gatherContext` as step 5 said, because it needs the merged rows from other contributors. Helpers added beyond the plan: `mergeByBranch`, `usageRows`, `contributorOf`, `isPlaceholder`, `safeName`. A third no-data case, `no session on this branch on this machine`, covers sessions that exist but never touched the PR's branch.
+- **Step 8 was done by comparison, not by posting.** The reader's skill counts and de-duplicated output tokens over this machine's transcripts (all branches, subagents included) matched an independent count: 8 skill calls by name and 228,163 output tokens. That also shows no double counting across the files read. Typed slash commands are still unverified against real transcripts.
 - **Tokens are written under `notes` as `<contributor>; <model>; <type>; counted by branch`**, as planned; the tests read the model and type back from there.
 
 ## Verification

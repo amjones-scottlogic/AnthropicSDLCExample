@@ -480,7 +480,7 @@ describe('skill usage and tokens (spec 008)', () => {
     tl({ type: 'assistant', message: { id: `m${id}`, model: 'm1', content: [{ type: 'tool_use', id: `t${id}`, name: 'Skill', input: { skill } }], usage }, ...o })
 
   /** A throwaway repo with repository skills, a fake transcripts folder and a stub gh. Returns what a run posted. */
-  function world({ sessions = {}, comments = [], authors = ['Amy'], runner = 'Amy', skills = ['plan', 'write-spec'], withProjectDir = true } = {}) {
+  function world({ sessions = {}, comments = [], authors = ['Amy'], runner = 'Amy', skills = ['plan', 'write-spec'], withProjectDir = true, prExtra = {} } = {}) {
     const cwd = makeRepo()
     for (const s of skills) {
       mkdirSync(path.join(cwd, '.claude', 'skills', s), { recursive: true })
@@ -495,7 +495,7 @@ describe('skill usage and tokens (spec 008)', () => {
         writeFileSync(path.join(dir, name), text)
       }
     }
-    const view = prView(['spec/002-x.md'], { commits: authors.map((a) => ({ committedDate: '2026-10-03T09:00:00Z', authors: [{ name: a }, { name: 'Claude Sonnet 5.5' }] })) })
+    const view = prView(['spec/002-x.md'], { commits: authors.map((a) => ({ committedDate: '2026-10-03T09:00:00Z', authors: [{ name: a }, { name: 'Claude Sonnet 5.5' }] })), ...prExtra })
     const { gh, writes } = fakeGh({ pr: { 7: view }, prs: [view], comments: { 7: comments } })
     return {
       run: () => {
@@ -627,5 +627,48 @@ describe('skill usage and tokens (spec 008)', () => {
   it('skips malformed transcript lines without failing', () => {
     const w = world({ sessions: { 's1.jsonl': ['{broken', call(1, 'plan'), '', 'null'].join('\n') } })
     expect(skillRows(w.run().rows)).toEqual({ plan: 1 })
+  })
+
+  it('matches a contributor whose name has a ";" or a "|" on a re-run, without duplicates or a stuck placeholder', () => {
+    for (const name of ['Smith; Jr', 'A|B']) {
+      const label = name.replace(';', ',')
+      const old = [usageRow(label, SKILL_METRIC, 'skill: plan; counted by branch', 99)]
+      const rows = world({ runner: name, authors: [name], comments: [{ id: 9, body: formatComment(old) }], sessions: { 's1.jsonl': call(1, 'plan') } }).run().rows
+      const mine = rows.filter((r) => r.metric === SKILL_METRIC)
+      expect(mine.map((r) => r.value)).toEqual(['1'])
+      expect(mine[0].notes.startsWith(`${label};`)).toBe(true)
+    }
+  })
+
+  it('keeps the runner\'s earlier real rows when this run has no data', () => {
+    const old = [usageRow('Amy', SKILL_METRIC, 'skill: plan; counted by branch', 99), usageRow('Amy', TOKEN_METRIC, 'm1; input; counted by branch', 7)]
+    const rows = world({ withProjectDir: false, comments: [{ id: 9, body: formatComment(old) }] }).run().rows
+    expect(rows.filter((r) => r.metric === SKILL_METRIC).map((r) => r.value)).toEqual(['99'])
+    expect(rows.find((r) => r.metric === TOKEN_METRIC).value).toBe('7')
+    expect(rows.some((r) => r.notes.includes(NO_DATA))).toBe(false)
+  })
+
+  it('says so when sessions exist but none touched this branch', () => {
+    const r = world({ sessions: { 's1.jsonl': call(1, 'plan', { gitBranch: 'main' }) } }).run().rows.find((x) => x.metric === SKILL_METRIC)
+    expect(r.value).toBe('')
+    expect(r.notes).toMatch(/no session on this branch/)
+  })
+
+  it('drops a typed command for a skill that is not in the repository', () => {
+    const typed = tl({ type: 'user', message: { role: 'user', content: '<command-name>/code-review</command-name>' } })
+    const { body, rows } = world({ sessions: { 's1.jsonl': typed } }).run()
+    expect(rows.filter((r) => r.metric === SKILL_METRIC).map((r) => [r.value, r.notes])).toEqual([['0', 'Amy; none used; counted by branch']])
+    expect(body).not.toMatch(/code-review/)
+  })
+
+  it('writes no skill or token rows when the PR has no branch name', () => {
+    const rows = world({ prExtra: { headRefName: '' }, sessions: { 's1.jsonl': tl({ type: 'user', gitBranch: undefined, message: { content: 'x' } }) } }).run().rows
+    expect(rows.filter((r) => r.metric === SKILL_METRIC || r.metric === TOKEN_METRIC).map((r) => r.notes)).toEqual(['Amy; no session data captured'])
+  })
+
+  it('gives the same rows when run twice on the same state', () => {
+    const w = world({ sessions: { 's1.jsonl': [call(1, 'plan'), call(2, 'write-spec')].join('\n') } })
+    const strip = (rows) => rows.map(({ captured_at, ...r }) => r)
+    expect(strip(w.run().rows)).toEqual(strip(w.run().rows))
   })
 })
