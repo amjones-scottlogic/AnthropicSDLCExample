@@ -9,8 +9,8 @@ import Typography from '@mui/material/Typography'
 import CheckIcon from '@mui/icons-material/Check'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import type { Action, Workstream } from '../../models/tracker/types/tracker'
-import { cleanText } from '../../models/tracker/utils/reducer'
+import type { Action, Workstream } from '../../models/tracker/types'
+import { cleanText } from '../../models/tracker/utils/cleanText'
 import { divider, doneChip, ink, workstreamColours } from '../../theme/theme'
 
 type ActionRowProps = {
@@ -28,19 +28,21 @@ export default function ActionRow({ action, workstream, handle, onToggle, onEdit
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(action.text)
   const [error, setError] = useState(false)
-  const textInput = useRef<HTMLInputElement>(null)
+  const textInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (editing) textInput.current?.focus()
+    if (editing) {
+      textInputRef.current?.focus()
+    }
   }, [editing])
 
-  function startEditing() {
+  function handleEdit() {
     setText(action.text)
     setError(false)
     setEditing(true)
   }
 
-  function save(event: FormEvent) {
+  function handleSave(event: FormEvent) {
     event.preventDefault()
     if (cleanText(text) === null) {
       setError(true)
@@ -63,7 +65,7 @@ export default function ActionRow({ action, workstream, handle, onToggle, onEdit
 
   if (editing) {
     return (
-      <Box component="form" onSubmit={save} noValidate sx={{ ...rowSx, flexWrap: 'wrap' }}>
+      <Box component="form" onSubmit={handleSave} noValidate sx={{ ...rowSx, flexWrap: 'wrap' }}>
         <TextField
           label="Action text"
           value={text}
@@ -72,12 +74,14 @@ export default function ActionRow({ action, workstream, handle, onToggle, onEdit
             setError(false)
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') setEditing(false)
+            if (event.key === 'Escape') {
+              setEditing(false)
+            }
           }}
           error={error}
           helperText={error ? 'Enter some text for the action' : undefined}
           slotProps={{ formHelperText: error ? { role: 'alert' } : undefined }}
-          inputRef={textInput}
+          inputRef={textInputRef}
           sx={{ flex: 1, minWidth: 200 }}
         />
         <Button type="submit" variant="contained">
@@ -123,7 +127,7 @@ export default function ActionRow({ action, workstream, handle, onToggle, onEdit
           sx={{ backgroundColor: workstreamColours[workstream.color], color: ink, fontWeight: 600 }}
         />
       )}
-      <IconButton aria-label={`Edit: ${action.text}`} onClick={startEditing}>
+      <IconButton aria-label={`Edit: ${action.text}`} onClick={handleEdit}>
         <EditIcon />
       </IconButton>
       <IconButton aria-label={`Delete: ${action.text}`} onClick={() => onDelete(action.id)}>

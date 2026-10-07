@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
-import type { WorkstreamColour } from '../../models/tracker/types/tracker'
-import { cleanText } from '../../models/tracker/utils/reducer'
+import type { WorkstreamColour } from '../../models/tracker/types'
+import { cleanText } from '../../models/tracker/utils/cleanText'
 import ColourPicker from './ColourPicker'
 
 type WorkstreamFormProps = {
@@ -25,9 +25,9 @@ export default function WorkstreamForm({
   const [name, setName] = useState(initialName)
   const [color, setColor] = useState(initialColor)
   const [error, setError] = useState(false)
-  const nameInput = useRef<HTMLInputElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => nameInput.current?.focus(), [])
+  useEffect(() => nameInputRef.current?.focus(), [])
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -50,7 +50,7 @@ export default function WorkstreamForm({
         error={error}
         helperText={error ? 'Enter a name for the workstream' : undefined}
         slotProps={{ formHelperText: error ? { role: 'alert' } : undefined }}
-        inputRef={nameInput}
+        inputRef={nameInputRef}
       />
       <ColourPicker value={color} onChange={setColor} />
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>

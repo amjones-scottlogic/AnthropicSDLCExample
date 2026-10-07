@@ -4,7 +4,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import FormLabel from '@mui/material/FormLabel'
 import Radio from '@mui/material/Radio'
 import RadioGroup from '@mui/material/RadioGroup'
-import { workstreamColourNames, type WorkstreamColour } from '../../models/tracker/types/tracker'
+import { WORKSTREAM_COLOUR_NAMES, type WorkstreamColour } from '../../models/tracker/types'
 import { ink, workstreamColours } from '../../theme/theme'
 
 type ColourPickerProps = {
@@ -27,7 +27,7 @@ export default function ColourPicker({ value, onChange }: ColourPickerProps) {
         value={value}
         onChange={(event) => onChange(event.target.value as WorkstreamColour)}
       >
-        {workstreamColourNames.map((name) => (
+        {WORKSTREAM_COLOUR_NAMES.map((name) => (
           <FormControlLabel
             key={name}
             value={name}

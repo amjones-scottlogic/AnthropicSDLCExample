@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest'
-import type { TrackerState } from '../models/tracker/types/tracker'
+import type { TrackerState } from '../models/tracker/types'
 import { loadTracker, saveTracker } from './trackerStorage'
 
 const state: TrackerState = {

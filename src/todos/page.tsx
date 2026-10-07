@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Box from '@mui/material/Box'
-import { defaultColour, actionsFor, allView, counts, selectionAfterDelete, type View } from '../models/tracker/utils/selectors'
+import { defaultColour, actionsFor, ALL_VIEW, counts, selectionAfterDelete, type View } from '../models/tracker/selectors'
 import { workstreamColours } from '../theme/theme'
 import ActionList from './components/ActionList'
 import AddActionBar from './components/AddActionBar'
@@ -13,11 +13,11 @@ import { useTracker } from './hooks/useTracker'
 export default function TodosPage() {
   const tracker = useTracker()
   const { state } = tracker
-  const [selected, setSelected] = useState<View>(allView)
+  const [selected, setSelected] = useState<View>(ALL_VIEW)
 
   // If the selected workstream no longer exists, fall back to All.
   const selectedWorkstream = state.workstreams.find((w) => w.id === selected)
-  const view = selectedWorkstream ? selected : allView
+  const view = selectedWorkstream ? selected : ALL_VIEW
 
   const { open, done } = actionsFor(state, view)
   const { total } = counts(state, view)
@@ -31,7 +31,9 @@ export default function TodosPage() {
         onCreate={(name, color) => setSelected(tracker.addWorkstream(name, color))}
         onEdit={tracker.editWorkstream}
         onDelete={(id) => {
-          if (id === view) setSelected(selectionAfterDelete(state.workstreams, id) ?? allView)
+          if (id === view) {
+            setSelected(selectionAfterDelete(state.workstreams, id) ?? ALL_VIEW)
+          }
           tracker.deleteWorkstream(id)
         }}
       />
@@ -53,8 +55,8 @@ export default function TodosPage() {
               <ActionList
                 actions={open}
                 workstreams={state.workstreams}
-                showWorkstream={view === allView}
-                sortable={view !== allView}
+                showWorkstream={view === ALL_VIEW}
+                sortable={view !== ALL_VIEW}
                 onToggle={tracker.toggleAction}
                 onEdit={tracker.editAction}
                 onDelete={tracker.deleteAction}
@@ -63,7 +65,7 @@ export default function TodosPage() {
               <DoneSection
                 actions={done}
                 workstreams={state.workstreams}
-                showWorkstream={view === allView}
+                showWorkstream={view === ALL_VIEW}
                 onToggle={tracker.toggleAction}
                 onEdit={tracker.editAction}
                 onDelete={tracker.deleteAction}

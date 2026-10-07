@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef } from 'react'
-import type { WorkstreamColour } from '../../models/tracker/types/tracker'
-import { trackerReducer } from '../../models/tracker/utils/reducer'
+import type { WorkstreamColour } from '../../models/tracker/types'
+import { trackerReducer } from '../../models/tracker/reducer'
 import { loadTracker, saveTracker } from '../../storage/trackerStorage'
 
 // Joins the tracker reducer to storage. Components never call storage directly.
@@ -8,9 +8,11 @@ export function useTracker() {
   const [state, dispatch] = useReducer(trackerReducer, undefined, loadTracker)
 
   // Save on every change, but not on load, so unreadable stored data is not overwritten by opening the app.
-  const loaded = useRef(state)
+  const loadedStateRef = useRef(state)
   useEffect(() => {
-    if (state !== loaded.current) saveTracker(state)
+    if (state !== loadedStateRef.current) {
+      saveTracker(state)
+    }
   }, [state])
 
   return {

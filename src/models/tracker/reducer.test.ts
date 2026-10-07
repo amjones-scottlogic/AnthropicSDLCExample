@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import type { TrackerState } from '../types/tracker'
+import type { TrackerState } from './types'
 import { trackerReducer } from './reducer'
 
 const base: TrackerState = {

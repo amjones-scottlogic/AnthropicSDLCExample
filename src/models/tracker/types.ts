@@ -1,8 +1,8 @@
 // The colours a user can give a workstream. Names match keys of `workstreamColours` in the theme;
 // lavender is reserved for the All view and is not offered.
-export const workstreamColourNames = ['yellow', 'green', 'sky', 'pink'] as const
+export const WORKSTREAM_COLOUR_NAMES = ['yellow', 'green', 'sky', 'pink'] as const
 
-export type WorkstreamColour = (typeof workstreamColourNames)[number]
+export type WorkstreamColour = (typeof WORKSTREAM_COLOUR_NAMES)[number]
 
 export type Workstream = {
   id: string
@@ -24,4 +24,4 @@ export type TrackerState = {
   actions: Action[]
 }
 
-export const emptyTracker: TrackerState = { workstreams: [], actions: [] }
+export const EMPTY_TRACKER: TrackerState = { workstreams: [], actions: [] }

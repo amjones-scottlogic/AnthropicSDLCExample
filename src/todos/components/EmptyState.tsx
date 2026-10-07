@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import type { WorkstreamColour } from '../../models/tracker/types/tracker'
+import type { WorkstreamColour } from '../../models/tracker/types'
 import WorkstreamForm from './WorkstreamForm'
 
 type EmptyStateProps = {

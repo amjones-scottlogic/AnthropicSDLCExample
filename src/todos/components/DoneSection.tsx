@@ -4,7 +4,7 @@ import AccordionSummary from '@mui/material/AccordionSummary'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import type { Action, Workstream } from '../../models/tracker/types/tracker'
+import type { Action, Workstream } from '../../models/tracker/types'
 import { divider } from '../../theme/theme'
 import ActionRow from './ActionRow'
 
@@ -27,7 +27,9 @@ export default function DoneSection({
   onEdit,
   onDelete,
 }: DoneSectionProps) {
-  if (actions.length === 0) return null
+  if (actions.length === 0) {
+    return null
+  }
 
   return (
     <Accordion

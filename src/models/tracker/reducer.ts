@@ -1,4 +1,5 @@
-import type { TrackerState, WorkstreamColour } from '../types/tracker'
+import type { TrackerState, WorkstreamColour } from './types'
+import { cleanText } from './utils/cleanText'
 
 export type TrackerAction =
   | { type: 'addWorkstream'; id: string; name: string; color: WorkstreamColour }
@@ -9,12 +10,6 @@ export type TrackerAction =
   | { type: 'toggleAction'; id: string }
   | { type: 'deleteAction'; id: string }
   | { type: 'reorderAction'; id: string; overId: string }
-
-// Returns the trimmed value, or null if it is empty or only whitespace.
-export function cleanText(value: string): string | null {
-  const trimmed = value.trim()
-  return trimmed === '' ? null : trimmed
-}
 
 function move<T>(list: T[], from: number, to: number): T[] {
   const next = list.slice()
@@ -27,7 +22,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
   switch (action.type) {
     case 'addWorkstream': {
       const name = cleanText(action.name)
-      if (name === null) return state
+      if (name === null) {
+        return state
+      }
       return {
         ...state,
         workstreams: [...state.workstreams, { id: action.id, name, color: action.color }],
@@ -35,7 +32,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'editWorkstream': {
       const name = cleanText(action.name)
-      if (name === null) return state
+      if (name === null) {
+        return state
+      }
       return {
         ...state,
         workstreams: state.workstreams.map((w) =>
@@ -69,7 +68,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'editAction': {
       const text = cleanText(action.text)
-      if (text === null) return state
+      if (text === null) {
+        return state
+      }
       return {
         ...state,
         actions: state.actions.map((a) => (a.id === action.id ? { ...a, text } : a)),
@@ -85,7 +86,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     case 'reorderAction': {
       const from = state.actions.findIndex((a) => a.id === action.id)
       const to = state.actions.findIndex((a) => a.id === action.overId)
-      if (from === -1 || to === -1 || from === to) return state
+      if (from === -1 || to === -1 || from === to) {
+        return state
+      }
       // Moving within the full list keeps other workstreams' relative order intact.
       return { ...state, actions: move(state.actions, from, to) }
     }

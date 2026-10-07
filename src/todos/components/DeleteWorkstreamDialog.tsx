@@ -5,7 +5,7 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
-import type { Workstream } from '../../models/tracker/types/tracker'
+import type { Workstream } from '../../models/tracker/types'
 
 type DeleteWorkstreamDialogProps = {
   workstream: Workstream | null
@@ -21,13 +21,13 @@ export default function DeleteWorkstreamDialog({
   onConfirm,
   onCancel,
 }: DeleteWorkstreamDialogProps) {
-  const cancel = useRef<HTMLButtonElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
   return (
     <Dialog
       open={workstream !== null}
       onClose={onCancel}
       aria-labelledby="delete-workstream-title"
-      slotProps={{ transition: { onEntered: () => cancel.current?.focus() } }}
+      slotProps={{ transition: { onEntered: () => cancelRef.current?.focus() } }}
     >
       <DialogTitle id="delete-workstream-title">Delete “{workstream?.name}”?</DialogTitle>
       <DialogContent>
@@ -37,7 +37,7 @@ export default function DeleteWorkstreamDialog({
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button ref={cancel} onClick={onCancel}>
+        <Button ref={cancelRef} onClick={onCancel}>
           Cancel
         </Button>
         <Button color="error" variant="contained" onClick={onConfirm}>

@@ -1,21 +1,21 @@
 import {
-  workstreamColourNames,
+  WORKSTREAM_COLOUR_NAMES,
   type Action,
   type TrackerState,
   type Workstream,
   type WorkstreamColour,
-} from '../types/tracker'
+} from './types'
 
 // The selected view: one workstream's id, or 'all'.
 export type View = string
 
-export const allView = 'all'
+export const ALL_VIEW = 'all'
 
 export function actionsFor(
   state: TrackerState,
   view: View,
 ): { open: Action[]; done: Action[] } {
-  const inView = view === allView ? state.actions : state.actions.filter((a) => a.workstreamId === view)
+  const inView = view === ALL_VIEW ? state.actions : state.actions.filter((a) => a.workstreamId === view)
   return { open: inView.filter((a) => !a.done), done: inView.filter((a) => a.done) }
 }
 
@@ -27,14 +27,18 @@ export function counts(state: TrackerState, view: View): { open: number; done: n
 // The workstream to show after one is deleted: the one before it, else the one after it, else none.
 export function selectionAfterDelete(workstreams: Workstream[], deletedId: string): string | null {
   const index = workstreams.findIndex((w) => w.id === deletedId)
-  if (index === -1) return null
+  if (index === -1) {
+    return null
+  }
   const remaining = workstreams.filter((w) => w.id !== deletedId)
-  if (remaining.length === 0) return null
+  if (remaining.length === 0) {
+    return null
+  }
   return remaining[Math.max(index - 1, 0)].id
 }
 
 // The first colour no workstream uses yet, or the first colour if all are used.
 export function defaultColour(workstreams: Workstream[]): WorkstreamColour {
   const used = new Set(workstreams.map((w) => w.color))
-  return workstreamColourNames.find((c) => !used.has(c)) ?? workstreamColourNames[0]
+  return WORKSTREAM_COLOUR_NAMES.find((c) => !used.has(c)) ?? WORKSTREAM_COLOUR_NAMES[0]
 }

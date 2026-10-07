@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ThemeProvider } from '@mui/material/styles'
-import type { Action, Workstream } from '../../models/tracker/types/tracker'
+import type { Action, Workstream } from '../../models/tracker/types'
 import theme from '../../theme/theme'
 import ActionList from './ActionList'
 

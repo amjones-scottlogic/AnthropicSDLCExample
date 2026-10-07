@@ -8,10 +8,11 @@ Build the app as one `todos` domain on top of a pure `tracker` model. The model 
 Paths follow `src-structure`. Models cannot import other models, so everything the reducer needs lives in one model, `tracker`.
 
 Create:
-- `src/models/tracker/types/tracker.ts`: `WorkstreamColour` (`'yellow' | 'green' | 'sky' | 'pink'`) and `workstreamColourNames`, `Workstream` (`id`, `name`, `color`), `Action` (`id`, `workstreamId`, `text`, `done`, `createdAt`), `TrackerState` (`workstreams`, `actions`).
-- `src/models/tracker/utils/reducer.ts`: `trackerReducer` and its action types: add / edit (name, colour) / delete workstream; add / edit / toggle / delete action; `reorderAction(id, overId)`. IDs and `createdAt` come in the payload, so the reducer is pure. Empty or whitespace-only names and texts are ignored (and trimmed otherwise). Deleting a workstream removes its actions. Reordering is `arrayMove` on the full `actions` list, so other workstreams' relative order is untouched and undoing a done action returns it to its place.
-- `src/models/tracker/utils/selectors.ts`: `actionsFor(state, view)` (open / done split, list order), `counts`, `selectionAfterDelete(workstreams, deletedId)` (previous workstream, else the next, else none), `defaultColour(workstreams)` (first unused colour, else yellow).
-- `src/models/tracker/utils/reducer.test.ts`, `selectors.test.ts`.
+- `src/models/tracker/types.ts`: `WorkstreamColour` (`'yellow' | 'green' | 'sky' | 'pink'`) and `WORKSTREAM_COLOUR_NAMES`, `Workstream` (`id`, `name`, `color`), `Action` (`id`, `workstreamId`, `text`, `done`, `createdAt`), `TrackerState` (`workstreams`, `actions`).
+- `src/models/tracker/reducer.ts`: `trackerReducer` and its action types: add / edit (name, colour) / delete workstream; add / edit / toggle / delete action; `reorderAction(id, overId)`. IDs and `createdAt` come in the payload, so the reducer is pure. Empty or whitespace-only names and texts are ignored (and trimmed otherwise). Deleting a workstream removes its actions. Reordering is `arrayMove` on the full `actions` list, so other workstreams' relative order is untouched and undoing a done action returns it to its place.
+- `src/models/tracker/selectors.ts`: `actionsFor(state, view)` (open / done split, list order), `counts`, `selectionAfterDelete(workstreams, deletedId)` (previous workstream, else the next, else none), `defaultColour(workstreams)` (first unused colour, else yellow).
+- `src/models/tracker/utils/cleanText.ts` (and its test): the generic trim-or-null helper shared by the reducer and the forms.
+- `src/models/tracker/reducer.test.ts`, `selectors.test.ts`.
 - `src/storage/trackerStorage.ts`: `loadTracker()` and `saveTracker(state)`. Key `todo-tracker`, value `{ version: 1, workstreams, actions }`. Missing, unparseable, wrong-shape, unknown-version or unknown-colour data returns the empty state. The only code that touches `localStorage`. Used by the `todos` domain (through the hook).
 - `src/storage/trackerStorage.test.ts`.
 - `src/todos/hooks/useTracker.ts`: `useReducer` seeded from `loadTracker()`, saves on every change after the first (so unreadable stored data is not overwritten just by opening the app), and supplies `crypto.randomUUID()` / `Date.now()` to the reducer actions.
@@ -19,6 +20,7 @@ Create:
 - `src/todos/page.test.tsx`: component tests (see Tests).
 - `src/todos/components/` (each with a `.test.tsx` next to it where it has behaviour):
   - `WorkstreamDrawer.tsx`: workstream list with an "All actions" entry, `ProgressRing` and "N open" per item, Add / Rename / Delete buttons with accessible names that include the workstream's name.
+  - `WorkstreamListItem.tsx` and `WorkstreamDialogs.tsx`: one drawer row, and the create, edit and delete dialogs, split out of `WorkstreamDrawer.tsx`.
   - `WorkstreamForm.tsx`: name field plus `ColourPicker`; used for create and edit, rejects an empty name with an error message. Shown as a dialog from the drawer and inline in the empty state.
   - `ColourPicker.tsx`: radio group of the four colours, each swatch labelled with the colour's name as text (spec concern: a pastel never stands alone). Colour hex values come from `workstreamColours` in `src/theme/theme.ts`.
   - `DeleteWorkstreamDialog.tsx`: MUI `Dialog` naming the workstream and the number of actions; Cancel is focused first.
@@ -105,3 +107,6 @@ None.
 - 2026-10-06: the All-view workstream picker in the add bar is a native `<select>` with a visible `<label>`, not an MUI menu, for keyboard and label support.
 - 2026-10-06: the done section is not shown when there are no done actions.
 - 2026-10-06: `App.test.tsx` and `main.test.tsx` now look for the empty state heading ("Create your first workstream"), because the placeholder page is gone.
+- 2026-10-07: PR review changes. The model is flat: `models/tracker/types.ts`, `reducer.ts`, `selectors.ts` (no `types/` folder, reducer and selectors not in `utils/`); `cleanText` moved to `models/tracker/utils/cleanText.ts`. The `src-structure` skill is updated to match.
+- 2026-10-07: PR review changes. Module-level constants are UPPER_CASE (`TRACKER_STORAGE_KEY`, `STORAGE_VERSION`, `WORKSTREAM_COLOUR_NAMES`, `EMPTY_TRACKER`, `ALL_VIEW`, `LIST_SX`, `WHITE_INPUT_SX`); every `if` has braces; refs end in `Ref`; handlers that hold logic are `handleX`. The coding-standards intent will cover the rest of the repo.
+- 2026-10-07: PR review changes. `WorkstreamDrawer.tsx` is split into `WorkstreamDrawer`, `WorkstreamListItem` and `WorkstreamDialogs`. The All actions row reserves the width of the rename and delete buttons so all drawer rows line up. The add bar's inputs are `size="small"` (44px, same as the Add button). The workstream dialogs restore the content's top padding so the floating label is not clipped. Tests added in `page.test.tsx`.

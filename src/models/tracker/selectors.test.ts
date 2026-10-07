@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { workstreamColours } from '../../../theme/theme'
-import { workstreamColourNames, type TrackerState, type Workstream } from '../types/tracker'
-import { actionsFor, allView, counts, defaultColour, selectionAfterDelete } from './selectors'
+import { workstreamColours } from '../../theme/theme'
+import { WORKSTREAM_COLOUR_NAMES, type TrackerState, type Workstream } from './types'
+import { actionsFor, ALL_VIEW, counts, defaultColour, selectionAfterDelete } from './selectors'
 
 const ws = (id: string, color: Workstream['color']): Workstream => ({ id, name: id, color })
 
@@ -16,9 +16,9 @@ const state: TrackerState = {
 }
 
 test('every offered colour exists in the theme, and lavender is not offered', () => {
-  for (const name of workstreamColourNames) expect(workstreamColours).toHaveProperty(name)
-  expect(workstreamColourNames).not.toContain('lavender')
-  expect(workstreamColourNames).toHaveLength(4)
+  for (const name of WORKSTREAM_COLOUR_NAMES) expect(workstreamColours).toHaveProperty(name)
+  expect(WORKSTREAM_COLOUR_NAMES).not.toContain('lavender')
+  expect(WORKSTREAM_COLOUR_NAMES).toHaveLength(4)
 })
 
 describe('actionsFor', () => {
@@ -29,7 +29,7 @@ describe('actionsFor', () => {
   })
 
   test('the All view shows every workstream', () => {
-    const { open, done } = actionsFor(state, allView)
+    const { open, done } = actionsFor(state, ALL_VIEW)
     expect(open.map((a) => a.id)).toEqual(['a1', 'a4'])
     expect(done.map((a) => a.id)).toEqual(['a2', 'a3'])
   })
@@ -37,7 +37,7 @@ describe('actionsFor', () => {
 
 test('counts', () => {
   expect(counts(state, 'w1')).toEqual({ open: 2, done: 1, total: 3 })
-  expect(counts(state, allView)).toEqual({ open: 2, done: 2, total: 4 })
+  expect(counts(state, ALL_VIEW)).toEqual({ open: 2, done: 2, total: 4 })
 })
 
 describe('selectionAfterDelete', () => {

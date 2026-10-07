@@ -18,7 +18,7 @@ import { CSS } from '@dnd-kit/utilities'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
-import type { Action, Workstream } from '../../models/tracker/types/tracker'
+import type { Action, Workstream } from '../../models/tracker/types'
 import ActionRow from './ActionRow'
 
 type ActionListProps = {
@@ -35,7 +35,7 @@ type ActionListProps = {
   onReorder: (id: string, overId: string) => void
 }
 
-const listSx = { listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '10px' }
+const LIST_SX = { listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '10px' }
 
 type RowProps = Pick<ActionListProps, 'onToggle' | 'onEdit' | 'onDelete'> & {
   action: Action
@@ -91,7 +91,7 @@ export default function ActionList({
 
   if (!sortable) {
     return (
-      <Box component="ul" aria-label="Open actions" sx={listSx}>
+      <Box component="ul" aria-label="Open actions" sx={LIST_SX}>
         {actions.map((action) => (
           <li key={action.id}>
             <ActionRow
@@ -122,7 +122,9 @@ export default function ActionList({
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
-    if (over && active.id !== over.id) onReorder(String(active.id), String(over.id))
+    if (over && active.id !== over.id) {
+      onReorder(String(active.id), String(over.id))
+    }
   }
 
   return (
@@ -133,7 +135,7 @@ export default function ActionList({
       accessibility={{ announcements }}
     >
       <SortableContext items={actions.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-        <Box component="ul" aria-label="Open actions" sx={listSx}>
+        <Box component="ul" aria-label="Open actions" sx={LIST_SX}>
           {actions.map((action) => (
             <SortableRow
               key={action.id}

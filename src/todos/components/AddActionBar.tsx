@@ -3,9 +3,9 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import type { Workstream } from '../../models/tracker/types/tracker'
-import { cleanText } from '../../models/tracker/utils/reducer'
-import { allView, type View } from '../../models/tracker/utils/selectors'
+import type { Workstream } from '../../models/tracker/types'
+import { cleanText } from '../../models/tracker/utils/cleanText'
+import { ALL_VIEW, type View } from '../../models/tracker/selectors'
 import { ink, workstreamColours } from '../../theme/theme'
 
 type AddActionBarProps = {
@@ -14,7 +14,7 @@ type AddActionBarProps = {
   onAdd: (workstreamId: string, text: string) => void
 }
 
-const whiteInput = { backgroundColor: '#FFFFFF', borderRadius: 1 }
+const WHITE_INPUT_SX = { backgroundColor: '#FFFFFF', borderRadius: 1 }
 
 // The dark bar at the bottom of the main area. `data-surface="ink"` switches on the yellow focus ring.
 export default function AddActionBar({ workstreams, view, onAdd }: AddActionBarProps) {
@@ -22,7 +22,7 @@ export default function AddActionBar({ workstreams, view, onAdd }: AddActionBarP
   const [chosen, setChosen] = useState('')
   const [error, setError] = useState(false)
 
-  const inAll = view === allView
+  const inAll = view === ALL_VIEW
   // In the All view the user picks the workstream; fall back to the first if their pick was deleted.
   const target = inAll ? (workstreams.find((w) => w.id === chosen) ?? workstreams[0]).id : view
 
@@ -52,10 +52,11 @@ export default function AddActionBar({ workstreams, view, onAdd }: AddActionBarP
           <TextField
             select
             fullWidth
+            size="small"
             id="add-action-workstream"
             value={target}
             onChange={(event) => setChosen(event.target.value)}
-            slotProps={{ select: { native: true }, input: { sx: whiteInput } }}
+            slotProps={{ select: { native: true }, input: { sx: WHITE_INPUT_SX } }}
           >
             {workstreams.map((w) => (
               <option key={w.id} value={w.id}>
@@ -71,13 +72,14 @@ export default function AddActionBar({ workstreams, view, onAdd }: AddActionBarP
         </Typography>
         <TextField
           fullWidth
+          size="small"
           placeholder="What needs doing?"
           value={text}
           onChange={(event) => {
             setText(event.target.value)
             setError(false)
           }}
-          slotProps={{ input: { id: 'add-action-text', sx: whiteInput }, htmlInput: { 'aria-invalid': error } }}
+          slotProps={{ input: { id: 'add-action-text', sx: WHITE_INPUT_SX }, htmlInput: { 'aria-invalid': error } }}
         />
         {error && (
           <Typography role="alert" sx={{ mt: 0.5, fontWeight: 600 }}>

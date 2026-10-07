@@ -26,7 +26,9 @@ async function addWorkstream(user: User, name: string, colour?: string) {
   await user.click(screen.getByRole('button', { name: 'Add workstream' }))
   const dialog = await screen.findByRole('dialog', { name: 'New workstream' })
   await user.type(within(dialog).getByRole('textbox', { name: 'Workstream name' }), name)
-  if (colour) await user.click(within(dialog).getByRole('radio', { name: colour }))
+  if (colour) {
+    await user.click(within(dialog).getByRole('radio', { name: colour }))
+  }
   await user.click(within(dialog).getByRole('button', { name: 'Create workstream' }))
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 }
@@ -259,6 +261,42 @@ describe('views (Req 7)', () => {
     await addAction(user, 'for work')
     await user.click(viewButton('Work'))
     expect(screen.getByText('for work')).toBeInTheDocument()
+  })
+})
+
+describe('layout from review', () => {
+  test('the add bar input is the same height as the Add button', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await createFirstWorkstream(user, 'Work')
+    const input = screen.getByRole('textbox', { name: 'New action' }).closest('.MuiInputBase-root')!
+    const button = screen.getByRole('button', { name: 'Add action' })
+    expect(getComputedStyle(input).minHeight).toBe('44px')
+    expect(getComputedStyle(button).minHeight).toBe('44px')
+    expect(input).toHaveClass('MuiInputBase-sizeSmall')
+  })
+
+  test('All actions reserves the space the workstream row buttons use, so rows line up', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await createFirstWorkstream(user, 'Work')
+    const drawer = screen.getByRole('navigation', { name: 'Workstreams' })
+    const rows = within(drawer).getAllByRole('listitem')
+    expect(rows).toHaveLength(2)
+    const [allRow, workRow] = rows
+    expect(within(allRow).getByTestId('row-buttons-spacer')).toHaveStyle({ width: '88px' })
+    expect(within(workRow).queryByTestId('row-buttons-spacer')).not.toBeInTheDocument()
+    expect(within(workRow).getAllByRole('button')).toHaveLength(3)
+  })
+
+  test('the workstream dialog leaves room above the name field for its label', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await createFirstWorkstream(user, 'Work')
+    await user.click(screen.getByRole('button', { name: 'Add workstream' }))
+    const dialog = await screen.findByRole('dialog', { name: 'New workstream' })
+    const content = dialog.querySelector('.MuiDialogContent-root')!
+    expect(getComputedStyle(content).paddingTop).toBe('24px')
   })
 })
 
