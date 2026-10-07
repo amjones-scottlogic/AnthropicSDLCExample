@@ -44,8 +44,8 @@ A `capture-metrics` skill that records the leading and lagging metrics defined i
   | Design | Time from intent commit to spec commit | First commit of `spec/NNN-*.md` minus first commit of `intent/NNN-*.md` |
   | Design | Spec commits after the first plan commit | Commits touching `spec/NNN-*.md` dated after the first commit of `plan/NNN-*.md` |
   | Build | Time from plan approval to merged PR | Commit that sets the plan to approved, to the merge time of the PR (filled in on a later run) |
-  | Build | Rework cycles per change | Commits pushed to the PR branch after it was opened (filled in on a later run) |
-  | Build | Share of changes that merge on the first implementation | PRs merged with no rework cycles, divided by all merged PRs (filled in on a later run) |
+  | Build | Rework cycles per change | Review rounds: each time a review on the PR requests changes and a fix follows (filled in on a later run) |
+  | Build | Share of changes that merge on the first implementation | PRs merged with zero review rounds, divided by all merged PRs (filled in on a later run) |
   | Build | How often Claude repeats a mistake already listed in `CLAUDE.md` | Lines added to "Common mistakes" in `CLAUDE.md`, per change |
   | Build | Changes merged per week per engineer | Merged PRs per author per ISO week, written next to rework rate |
   | Build | Time to first merged PR for a new team member | First merged PR minus first commit, per author. Empty for a sole user |
@@ -71,7 +71,7 @@ A `capture-metrics` skill that records the leading and lagging metrics defined i
 
 - What Claude session data can actually be read, and does it cover concurrent sessions, orchestrating versus waiting, and time from first conversation to intent? Until this is checked, those three metrics are specified but cannot be built.
 - Does one PR open mark the end of every stage? This spec assumes it does and infers the stage from the files changed. A PR that touches several stages would be recorded under more than one.
-- Is "first implementation" defined as "no commits after the PR was opened"? Commits for review fixes and for CI fixes are both counted by that definition.
+- Review rounds are read from the PR's reviews on GitHub. As a sole user, do you review your own PRs there, or does the `plan-reviewer` agent do the review in a session? If the latter, those rounds are not on GitHub and would have to come from session data.
 - The comment on each PR is the only record. What makes it easy to collect those comments for charting later, given that charting is a later intent? A fixed table layout is assumed here, but nothing gathers the comments yet.
 - Should the `write-spec` Action also post a metrics comment on the spec PRs it opens? A local hook never sees those. An extra Action step could run the git-only calculations and post the comment, but it would only work once the `ANTHROPIC_API_KEY` secret exists, because the PR is only opened when the key is present. Session metrics could not be included.
 
@@ -80,5 +80,5 @@ A `capture-metrics` skill that records the leading and lagging metrics defined i
 1. **Departs from the accepted intent as first written.** The intent originally said a GitHub Action would trigger the skill. At the product owner's direction it was changed to a local hook, and the intent is updated in the same commit. The earlier concerns about session stats not reaching an Action, a missing `ANTHROPIC_API_KEY` secret, and Action commits not re-running CI no longer apply.
 2. **PRs not opened by Claude on this machine are not covered.** The spec PRs opened by the `write-spec` Action, and any PR opened in the browser, never fire the hook, so Design-stage data for those is only captured on the next local run. See the open question about adding an Action step.
 3. **Comments are hard to chart.** The intent asks for raw data that is easy to turn into charts. A comment on each PR is spread across many PRs, and the intent no longer says where the data is collected. This spec leaves that for the later charting intent, which will have to gather the comments first.
-4. **Definitions are ambiguous in places.** "Rework cycle", "merges on the first implementation" and "plan approval" are not precisely defined in `AI-SDLC.md`. The table above picks a reading for each. If the intended meaning is different, these metrics will mislead.
+4. **Definitions are not in `AI-SDLC.md`.** The product owner has settled three: a rework cycle is a review round (a review that requests changes, followed by a fix); a change merges on the first implementation when it has zero review rounds; and plan approval is the commit that sets the plan's status to approved. They are recorded in the table above but `AI-SDLC.md` still doesn't say so, so the two can drift apart.
 5. **Standards.** The `project-standards` constraints (no backend, no network calls) do not apply to repository tooling, so no conflict is raised. Flagging this explicitly in case the product owner reads the standards more broadly.
