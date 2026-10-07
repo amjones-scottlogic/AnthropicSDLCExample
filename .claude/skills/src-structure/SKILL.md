@@ -15,9 +15,10 @@ src/
   App.tsx               app shell: routing and top-level layout
   components/           generic UI (button, dialog), no domain or model knowledge
   models/
-    <model>/            one folder per model, e.g. todo/ (a todo item)
-      types/
-      utils/
+    <model>/            one folder per model, e.g. tracker/ (workstreams and actions)
+      types.ts          the model's types and constants
+      <name>.ts         logic over the model, named for what it is: reducer.ts, selectors.ts
+      utils/            only generic pure helpers, e.g. cleanText.ts
   storage/              localStorage reads and writes
   theme/                the one app-wide MUI theme (theme.ts), applied in main.tsx
   <domain>/             one folder per page, e.g. todos/ (route /todos)
@@ -39,7 +40,7 @@ Create only the folders a domain needs. Don't add empty ones.
 
 - **Domain:** one per page or route. If a page needs several screens, they go in its `screens/` folder rather than becoming new domains.
 - **Sub-domain:** a page that sits under a domain's route, such as the page for a single todo item (`/todos/1`). It has its own `page.tsx` and may have its own `components/`, `hooks/` and `screens/`, used only at that level.
-- **Model:** a concept shared across the app, usually one that would map to a backend entity (a todo item). `types/` holds its types; `utils/` holds pure logic over it. Models contain no React. Add a `hooks/` folder only when a model genuinely needs one.
+- **Model:** a concept shared across the app, usually one that would map to a backend entity (a todo item). A model is a folder of flat files: `types.ts` holds its types and constants, and logic over it goes in files named for what it is (`reducer.ts`, `selectors.ts`), not in a `utils/` folder. `utils/` is only for generic pure helpers that are not a named concept. Models contain no React. Add a `hooks/` folder only when a model genuinely needs one.
 - **Generic components:** top-level `components/` is for UI with no knowledge of any domain or model.
 - **Theme:** `theme/` holds the single MUI theme and its exported colour constants. Only `main.tsx`, components that need a theme constant (such as a workstream colour) and tests import it. It imports nothing from other folders.
 - **Storage:** `storage/` is the only code that touches `localStorage`, so the browser-only data rule in `project-standards` has one place to check.

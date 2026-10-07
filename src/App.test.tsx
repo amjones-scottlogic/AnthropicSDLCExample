@@ -4,11 +4,11 @@ import { ThemeProvider } from '@mui/material/styles'
 import App from './App'
 import theme from './theme/theme'
 
-test('renders the placeholder page', () => {
+test('renders the todo page, starting with the empty state', () => {
   render(
     <ThemeProvider theme={theme}>
       <App />
     </ThemeProvider>,
   )
-  expect(screen.getByRole('heading', { name: 'Todo app' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Create your first workstream' })).toBeInTheDocument()
 })
