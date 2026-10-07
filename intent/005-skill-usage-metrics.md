@@ -13,7 +13,7 @@ The PR metrics comment (intent 002) doesn't say which skills were used while the
 - They are posted in the existing metrics comment and refreshed with it when more commits are pushed.
 
 ## Affected users and systems
-- Users: just me.
+- Users: all contributors to the project.
 - Systems: the existing `capture-metrics` skill and script, the PR metrics comment, and the Claude `usage` and `cost` command output.
 
 ## Constraints
