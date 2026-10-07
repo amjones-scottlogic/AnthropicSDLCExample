@@ -38,7 +38,7 @@ Spec: [link to the spec file]. Intent: [link to the intent file]. Status: draft.
 [Which steps can run at the same time in separate sessions, each in its own worktree and branch. For each, the files it owns; no file may appear in two parallel tasks. Say which steps must wait for another and why. If nothing can run in parallel, say "None" and why. Use the `src-structure` skill's domain boundaries to find the split.]
 
 ## Tests
-[Which tests validate each requirement, and the acceptance criteria that mean "done". Name the test files.]
+[Which tests validate each requirement, and the acceptance criteria that mean "done". Name the test files. Name every existing test the plan will change: that unlocks it for editing. A bug fix starts with a failing test. Use an E2E test only for what a unit test cannot cover.]
 
 ## Risks
 [What could break, constraints (limits, dependencies, data), the highest-risk step and how it is contained.]
