@@ -1,7 +1,9 @@
 # Spec: Give Claude a feedback loop
-Intent: [intent/007-feedback-loop.md](../intent/007-feedback-loop.md). Status: draft.
+
+Intent: [intent/007-feedback-loop.md](../intent/007-feedback-loop.md). Status: approved.
 
 ## Summary
+
 Make Claude check its own work before it hands anything over. `CLAUDE.md` says what each check is, what a pass looks like and what "done" means, and one `npm run verify` runs every check. Existing tests are protected from quiet edits. Playwright is added for a few end-to-end tests, with screenshot support so Claude can look at the running app. CI runs the same checks, including Playwright headless. It adds no app features.
 
 ## Requirements
@@ -16,7 +18,7 @@ Make Claude check its own work before it hands anything over. `CLAUDE.md` says w
    - gives the bug-fix rule: write a failing test first, show it fails, then fix the code without changing that test.
 3. **Protected tests.** Claude cannot edit an existing test file unless an approved plan names it.
    - Protected files: every git-tracked unit test (`*.test.ts`, `*.test.tsx`) and every tracked file under `e2e/`.
-   - An edit to a protected file is denied, with a message saying the plan must name the file.
+   - An edit to a protected file is denied, with a message saying the plan must name the file or you must get human approval.
    - A file is unlocked when a `plan/*.md` on the current branch lists its path.
    - New test files are not protected until they are committed.
 4. **Playwright E2E tests.** Playwright runs a small suite from `e2e/`, against the built app.
@@ -54,6 +56,7 @@ Make Claude check its own work before it hands anything over. `CLAUDE.md` says w
 - **CI.** The existing `ci` job gets two steps after `npm run build`: `npx playwright install --with-deps chromium`, then `npm run test:e2e`. They run before `check:offline`, so the job stays one ordered list and the same as `verify`. No separate job, to keep the pipeline simple.
 
 ## Out of scope
+
 - A hook that runs checks at the end of every Claude turn.
 - Reference screenshots kept in the repo or visual-diff tests.
 - Browsers other than Chromium, mobile emulation or cross-browser runs.
@@ -63,9 +66,11 @@ Make Claude check its own work before it hands anything over. `CLAUDE.md` says w
 - Changes to the app's features, and any metrics work.
 
 ## Open questions
+
 None. The intent's open question on which files are protected is answered in requirement 3.
 
 ## Flagged concerns
+
 - **Hook coverage is partial.** The test-guard hook sees `Edit` and `Write` calls only. A test weakened through a shell command gets past it. This is accepted for a guard against quiet edits, and `plan-reviewer` is the second check, but the product owner should know it is not airtight.
 - **`verify` gets slower.** It now builds and starts a browser, so it takes noticeably longer than the unit tests alone. This is why E2E stays small, and why `npm test` still runs alone for quick checks.
 - **Playwright's browser download.** Installing Chromium fetches from outside this repo. It is dev and CI tooling only, so it does not break the "no external requests" standard, which covers the app. Worth confirming that reading.
