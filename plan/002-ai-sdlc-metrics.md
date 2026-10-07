@@ -74,6 +74,11 @@ None.
 - **Time to first conversation only counts sessions that predate the intent commit.** A session that wrote `intent/NNN-*.md` after the intent was first committed only edited it, and gave a negative value for intent 002. Such a row is now empty with a note.
 - **Time to first merged PR uses the author's earliest visible commit** across the listed PRs, not the current PR's first commit, and is empty rather than negative when that cannot be worked out. It still reads as a small number for the original author, because only the latest 25 PRs are visible.
 - **Hook also fires on `git push`.** Requested by the product owner after the plan was approved: the metrics must be updated on further commits to the PR, run locally. Spec 002 (requirement 5 and the Hook design bullet) and intent 002 were updated to say so in the same commit. The trigger is a push rather than a commit, because commits only reach the PR when pushed. A push on a branch with no open PR does nothing and prints nothing. The existing `push-gate` hook still asks for approval before the push; this hook runs after it.
+- **Fixes from the review of PR #14** (findings 3 to 5):
+  - A refresh keeps a plan-match verdict already in the comment unless `--plan-match` gives a new one. Before, any later push or catch-up replaced it with "not yet judged".
+  - Comments are listed with `gh api --paginate --slurp` and flattened, so a PR with more than one page (over 30) of comments still parses.
+  - `findPendingPrs` skips a PR whose comments cannot be read, and `catchUp` refreshes the remaining PRs when one fails. A failing `--pr` no longer skips `--catch-up`; the CLI is now `runCli`, which returns the exit code (1 on any failure, 2 for no arguments).
+  - Tests added for each, including a pagination check that fails without `--slurp`.
 - **Manual check.** Step 9 was first run through a throwaway script that called the real `gh` for reads and posted nothing. A later attempt to dry-run the whole hook used a stub `gh` on `PATH`, which Node ignored because it launched `gh.exe` directly. That run really posted (then updated) a metrics comment on PR #10. The script has no `--dry-run` flag, so a hook-level dry run is not possible without one.
 
 ## Verification
