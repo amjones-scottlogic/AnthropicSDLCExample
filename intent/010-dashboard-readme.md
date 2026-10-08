@@ -6,7 +6,9 @@ The metrics dashboard (intent 005) runs locally from files in the repo, but the 
 
 ## Proposed outcome
 - The project README explains how to run the dashboard: what it needs installed, how to start and stop it, how to load the data, and where to open it.
-- Someone new to the project can get the dashboard running from the README alone.
+- It also covers first-time setup: Docker Desktop, `gh auth login` and changing the Grafana admin password.
+- The README has a short section that points to `grafana/README.md` for the steps, so they live in one place.
+- Someone new to the project can find the dashboard from the README and follow it through to a running dashboard.
 
 ## Affected users and systems
 - Users: anyone who wants to view the AI-SDLC metrics.
@@ -17,5 +19,4 @@ The metrics dashboard (intent 005) runs locally from files in the repo, but the 
 - Don't change how the dashboard works. This is documentation only.
 
 ## Open questions
-- Should the README carry the full steps, or a short section that points to `grafana/README.md`, so the steps live in one place?
-- Should it also cover first-time setup (Docker Desktop, `gh auth login`, changing the Grafana admin password)?
+None.
