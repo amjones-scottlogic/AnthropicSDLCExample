@@ -52,6 +52,9 @@ export function toStreams(rows) {
     if (!streams.has(id)) streams.set(id, { stream: labels, values: [] })
     streams.get(id).values.push([toNs(row.captured_at), JSON.stringify(row)])
   }
+  // Loki rejects an entry that is older than the newest one already in its stream by more than the out-of-order window,
+  // so each stream goes out oldest first.
+  for (const s of streams.values()) s.values.sort((a, b) => (BigInt(a[0]) < BigInt(b[0]) ? -1 : BigInt(a[0]) > BigInt(b[0]) ? 1 : 0))
   return [...streams.values()]
 }
 

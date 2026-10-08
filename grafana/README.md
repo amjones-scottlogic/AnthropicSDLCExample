@@ -9,9 +9,9 @@ machine only. Nothing here is part of the published app. Spec: [spec/005](../spe
 2. `gh auth login`. The collector uses your own login to read PR comments.
 3. Optional: put `GRAFANA_ADMIN_PASSWORD=<something>` in `grafana/.env` (git-ignored). Otherwise sign in at
    <http://127.0.0.1:3000> as `admin` / `admin` and change the password when asked. Do this before anything else.
-4. `npm run metrics:schedule` registers a daily Task Scheduler task at 20:00 local time (`-Time 21:30` to change it,
-   `-Remove` to delete it). It starts the stack if it is down, then collects. If the machine was off at 20:00 it runs
-   when the machine is next on.
+
+Nothing is scheduled: run the collector yourself when you want fresh data. The "Last collector run" panel shows when it
+was last run.
 
 ## Commands
 

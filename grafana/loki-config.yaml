@@ -30,7 +30,15 @@ schema_config:
 limits_config:
   reject_old_samples: false
   max_query_length: 0h
+  # The collector reads back everything since 2020 in one query; the default 1h split makes that tens of thousands of
+  # sub-queries and the connection times out.
+  split_queries_by_interval: 0
   retention_period: 0s
+
+# Loki accepts an entry only if it is within max_chunk_age/2 of the newest entry in its stream. Rows arrive with their
+# captured_at, in any order across runs (another contributor's refresh of an older PR), so the window is made wide.
+ingester:
+  max_chunk_age: 8760h
 
 analytics:
   reporting_enabled: false

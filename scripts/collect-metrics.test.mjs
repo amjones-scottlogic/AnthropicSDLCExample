@@ -81,6 +81,14 @@ describe('toStreams', () => {
   })
 })
 
+describe('toStreams ordering', () => {
+  it('sends each stream oldest first, whatever order the rows came in', () => {
+    const rows = rowsFromPr({ number: 7, state: 'OPEN' }, [comment(row(T2, 'Tokens', 1, 'a; m; input; x'), row(T1, 'Tokens', 2, 'b; m; input; x'))]).rows
+    const [stream] = toStreams(rows)
+    expect(stream.values.map((v) => JSON.parse(v[1]).captured_at)).toEqual([T1, T2])
+  })
+})
+
 describe('collect', () => {
   const prs = [{ number: 7, state: 'MERGED' }, { number: 8, state: 'OPEN' }]
   const gh = (second = []) => fakeGh(prs, { 7: [comment(row(T1, 'Skill invocations', 3, 'amy; skill: plan; counted by branch'), ...second)] })

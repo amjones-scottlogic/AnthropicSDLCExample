@@ -12,7 +12,7 @@ const dashboard = JSON.parse(readFileSync(path.join(dir, 'dashboards', 'ai-sdlc-
 const STREAM_LABELS = ['job', 'stage', 'kind', 'metric']
 const BODY_FIELDS = [...FIELDS, 'pr_number', 'pr_state']
 // Names a query creates itself with `| regexp` from `notes`.
-const DERIVED = ['skill', 'model', 'type']
+const DERIVED = ['skill', 'model', 'type', 'series']
 const KNOWN = new Set([...STREAM_LABELS, ...BODY_FIELDS, ...DERIVED])
 
 const targets = dashboard.panels.flatMap((p) => (p.targets ?? []).map((t) => ({ panel: p.title, expr: t.expr })))
@@ -66,6 +66,6 @@ describe('dashboard definition', () => {
   it('adds contributors together per skill, and per model and token type', () => {
     const find = (title) => targets.find((t) => t.panel.startsWith(title)).expr
     expect(find('Skill invocations for')).toMatch(/^sum by \(skill\)/)
-    expect(find('Tokens for')).toMatch(/^sum by \(model, type\)/)
+    expect(find('Tokens for')).toMatch(/^sum by \((series)\)/)
   })
 })

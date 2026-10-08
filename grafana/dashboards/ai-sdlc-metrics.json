@@ -122,7 +122,7 @@
           "maxLines": 1
         }
       ],
-      "description": "The most recent run of the nightly collector. If this is more than a day old, a run was missed or failed: run npm run metrics:collect.",
+      "description": "The most recent run of the collector. Nothing is scheduled: run npm run metrics:collect (with npm run metrics:up) to refresh the data.",
       "options": {
         "showTime": true,
         "sortOrder": "Descending",
@@ -163,7 +163,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=~\"$kind\", stage=~\".*$stage.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=~\"$kind\", stage=~\".*$stage.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -212,7 +212,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=\"leading\", stage=~\".*Plan.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"leading\", stage=~\".*Plan.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -248,7 +248,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=\"lagging\", stage=~\".*Plan.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"lagging\", stage=~\".*Plan.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -297,7 +297,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=\"leading\", stage=~\".*Design.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"leading\", stage=~\".*Design.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -333,7 +333,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=\"lagging\", stage=~\".*Design.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"lagging\", stage=~\".*Design.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -382,7 +382,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=\"leading\", stage=~\".*Build.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"leading\", stage=~\".*Build.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -418,7 +418,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", kind=\"lagging\", stage=~\".*Build.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"lagging\", stage=~\".*Build.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
           "queryType": "range",
           "legendFormat": "{{metric}}"
         }
@@ -490,6 +490,7 @@
               "id": true,
               "tsNs": true,
               "stage_extracted": true,
+              "Time": true,
               "kind_extracted": true,
               "metric_extracted": true,
               "job": true
@@ -583,13 +584,36 @@
       "options": {
         "orientation": "horizontal",
         "legend": {
-          "showLegend": true
-        }
+          "showLegend": false
+        },
+        "showValue": "always"
       },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "min": 0
+        },
         "overrides": []
-      }
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
     },
     {
       "id": 18,
@@ -681,21 +705,44 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (model, type) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Tokens\"} | json | value=~\".+\" | regexp \"^[^;]*; (?P<model>[^;]+); (?P<type>input|output|cache read|cache write);\" | pr_number=~\"$pr\" | unwrap value [1825d]) by (model, type, pr_number, notes))",
+          "expr": "sum by (series) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Tokens\"} | json | value=~\".+\" | regexp \"^[^;]*; (?P<model>[^;]+); (?P<type>input|output|cache read|cache write);\" | label_format series=\"{{.model}} {{.type}}\" | pr_number=~\"$pr\" | unwrap value [1825d]) by (series, pr_number, notes))",
           "queryType": "instant",
-          "legendFormat": "{{model}} {{type}}"
+          "legendFormat": "{{series}}"
         }
       ],
       "options": {
         "orientation": "horizontal",
         "legend": {
-          "showLegend": true
-        }
+          "showLegend": false
+        },
+        "showValue": "always"
       },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "min": 0
+        },
         "overrides": []
-      }
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
     },
     {
       "id": 22,
@@ -718,9 +765,9 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (model, type) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Tokens\"} | json | value=~\".+\" | regexp \"^[^;]*; (?P<model>[^;]+); (?P<type>input|output|cache read|cache write);\" | unwrap value [$window]) by (model, type, pr_number, notes))",
+          "expr": "sum by (series) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Tokens\"} | json | value=~\".+\" | regexp \"^[^;]*; (?P<model>[^;]+); (?P<type>input|output|cache read|cache write);\" | label_format series=\"{{.model}} {{.type}}\" | unwrap value [$window]) by (series, pr_number, notes))",
           "queryType": "range",
-          "legendFormat": "{{model}} {{type}}"
+          "legendFormat": "{{series}}"
         }
       ],
       "fieldConfig": {
