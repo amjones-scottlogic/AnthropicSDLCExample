@@ -1,5 +1,5 @@
 # Spec: Document how to run the metrics dashboard in the README
-Intent: [intent/010-dashboard-readme.md](../intent/010-dashboard-readme.md). Status: draft.
+Intent: [intent/010-dashboard-readme.md](../intent/010-dashboard-readme.md). Status: approved.
 
 ## Summary
 The AI-SDLC metrics dashboard (intent 005) is documented only in `grafana/README.md`, so a reader of the project `README.md` would not know it exists. This adds a short dashboard section to the project README that says what the dashboard is, what it needs, and that first-time setup is required, and sends the reader to `grafana/README.md` for every step. The steps and commands live only there. It is documentation only: nothing about how the dashboard works changes.
