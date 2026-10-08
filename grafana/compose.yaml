@@ -1,0 +1,38 @@
+# Grafana OSS and Loki for the AI-SDLC metrics dashboard. Both ports are published on 127.0.0.1 only:
+# never widen them. Data lives in named volumes, so it survives `npm run metrics:down`.
+# Set GRAFANA_ADMIN_PASSWORD in a git-ignored .env file next to this one; without it Grafana uses admin/admin
+# and asks for a new password at first login.
+name: ai-sdlc-metrics
+
+services:
+  loki:
+    image: grafana/loki:3.4.2
+    command: -config.file=/etc/loki/config.yaml
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:11.5.2
+    depends_on:
+      - loki
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+
+volumes:
+  loki-data:
+  grafana-data:

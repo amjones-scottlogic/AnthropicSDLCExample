@@ -1,14 +1,13 @@
 # Spec: AI-SDLC metrics dashboard
-Intent: [intent/005-ai-sdlc-metrics-dashboard.md](../intent/005-ai-sdlc-metrics-dashboard.md). Status: draft.
+Intent: [intent/005-ai-sdlc-metrics-dashboard.md](../intent/005-ai-sdlc-metrics-dashboard.md). Status: approved.
 
 ## Summary
-A Grafana dashboard that shows the AI-SDLC metrics across every pull request in the project, so trends and stage comparisons can be seen without opening PRs one by one. Grafana OSS and Loki run on the user's own machine, started from files in the repo. A scheduled job on the same machine collects the `AI-SDLC metrics` comments from the PRs each evening and loads the rows into Loki. The dashboard, kept as code in the repo, shows each metric over time, metrics by stage, a drill-down into one change, leading against lagging metrics, and the skill and token data added by intent 008. It reads data only. It does not change how the metrics are captured, and it is not part of the published app.
+A Grafana dashboard that shows the AI-SDLC metrics across every pull request in the project, so trends and stage comparisons can be seen without opening PRs one by one. Grafana OSS and Loki run on the user's own machine, started from files in the repo. One command on the same machine collects the `AI-SDLC metrics` comments from the PRs and loads the rows into Loki; it is run by hand, and nothing is scheduled. The dashboard, kept as code in the repo, shows each metric over time, metrics by stage, a drill-down into one change, leading against lagging metrics, and the skill and token data added by intent 008. It reads data only. It does not change how the metrics are captured, and it is not part of the published app.
 
 ## Requirements
 
-1. **Collected nightly.** A scheduled job on the user's machine reads the metrics comment from every PR in the repository, open and merged, and loads the rows into Loki.
-   - It runs at a set time each evening, and on demand with one command.
-   - If the machine was off at the scheduled time, the next run catches up. Nothing is lost, because every run reads all PRs and sends whatever Loki does not already have.
+1. **Collected on demand.** One command on the user's machine reads the metrics comment from every PR in the repository, open and merged, and loads the rows into Loki. Nothing runs on a schedule.
+   - A run after a gap catches up. Nothing is lost, because every run reads all PRs and sends whatever Loki does not already have.
    - A comment that cannot be parsed is skipped and listed in the run's output with its PR number. It does not fail the run.
    - If Loki cannot be reached, the run fails visibly and says so, rather than silently sending nothing.
 2. **Reads the existing format.** The job reads the comment identified by the `<!-- ai-sdlc-metrics -->` marker and the table of fields `captured_at`, `stage`, `metric`, `kind`, `change`, `value`, `unit`, `source`, `notes`, as defined by intent 002. It needs no change to the comment.
@@ -34,7 +33,7 @@ A Grafana dashboard that shows the AI-SDLC metrics across every pull request in 
     - A row with an empty `value` is left out of totals, averages and chart lines, and is visible in the drill-down with its `notes` reason (for example `no session data captured`).
     - A real 0 is shown as 0.
 15. **Says how approximate it is.** The skill and token panels state that only repository skills are counted, that counts are by branch and only from contributors who ran the capture, and that they are approximate.
-16. **Shows its age.** The dashboard shows when data was last loaded, so a missed or failed run is obvious.
+16. **Shows its age.** The dashboard shows when data was last loaded, so a run that was forgotten or failed is obvious.
 17. **Stays on the machine.** Grafana and Loki accept connections from the local machine only. The collector sends nothing anywhere except to the local Loki. No credentials are stored in the repo.
 18. **Tested** (see Testing).
 
@@ -47,7 +46,7 @@ A Grafana dashboard that shows the AI-SDLC metrics across every pull request in 
 - **Missing values.** Queries unwrap `value` only where it is non-empty, so empty values drop out of charts and totals. The drill-down is a table over the raw lines, so empty values are visible there with their notes.
 - **Latest per PR.** Panels default to the latest snapshot per PR (the last `captured_at` for each PR and metric) and offer a dashboard variable to show all snapshots.
 - **Dashboard.** `grafana/dashboards/ai-sdlc-metrics.json`, with variables for metric, stage, kind and PR, and rows of panels for the views above.
-- **Scheduling.** The job is scheduled with the machine's own scheduler (Task Scheduler on Windows, cron elsewhere), at local time. The repo includes one documented command that registers the task, so setup is not a manual search through settings. It runs the collector, which needs the stack up, so the task starts it first if it is not running.
+- **No scheduling.** The collector is run by hand with `npm run metrics:collect`, with the stack up (`npm run metrics:up`). The repo registers no scheduled task and no GitHub Action. The product owner removed scheduling after the first build.
 - **Not in the app.** None of this is part of the Vite build, GitHub Pages, CI deployment or the todo app. No `src/` code is added. The code is the collector and its tests in `scripts/`, plus the files under `grafana/`.
 
 ## Testing
@@ -56,7 +55,7 @@ A Grafana dashboard that shows the AI-SDLC metrics across every pull request in 
 - Repeating: given rows Loki already has, the collector sends nothing new, and a refreshed comment sends only its new snapshot.
 - Unreachable Loki: the run exits with an error message and a non-zero code.
 - Dashboard definition: the JSON is valid, and every query panel refers to fields the collector sends. It is checked against the running stack in the plan, with fixture data loaded, not only by reading it.
-- Not covered by automated tests: how the panels look, and that the scheduled task fires. Both are checked by hand in the plan.
+- Not covered by automated tests: how the panels look, and a real double run against Loki. Both are checked by hand in the plan.
 
 ## Out of scope
 
@@ -71,15 +70,14 @@ A Grafana dashboard that shows the AI-SDLC metrics across every pull request in 
 
 - **Docker.** The stack is specified as containers, which needs Docker (or a compatible runtime) on the machine. Is it installed? If not, Grafana OSS and Loki can be installed directly instead, at the cost of a less repeatable setup.
 - **Loki or something else.** Loki is recommended above. Prometheus or a SQL database as a data source would also work but need another service. Confirm before planning.
-- **Time of the job.** Proposal: 20:00 local time. It needs the machine on and awake then. Confirm the time.
 - **Which skill and token views are useful.** This spec includes per-PR and over-time views for both. Tokens per stage or per merged change are not included. Say if they are wanted.
 - **Cost.** Should an estimated cost be shown? That needs a price source, such as a file of prices in the repo. Left out until decided.
 - **Earlier PRs and gaps.** Requirements 3 and 14 treat them as "no rows" and "missing". Confirm that is the treatment wanted.
 
 ## Flagged concerns
 
-- **Only runs when the machine is on.** The intent asks for a nightly pull. A local job cannot run on a closed laptop. Requirement 1 catches up on the next run, so no data is lost, but the dashboard can be a day or more behind, and requirement 16 shows its age. If a reliable fixed time matters, the job would need to run somewhere always on, which brings back the questions of reachability and secrets.
-- **Setup is outside the app and by hand.** Docker, `gh` login and the scheduled task are one-off setup on the machine, not in code. The plan should record them, as spec 003 does for Pages.
+- **Not nightly.** The intent asks for a pull every evening. This spec drops that at the product owner's request: the data is only as fresh as the last time someone ran the collector, and requirement 16 shows its age. Intent 005 still says "every evening" and was not edited.
+- **Setup is outside the app and by hand.** Docker and `gh` login are one-off setup on the machine, not in code. The plan should record them, as spec 003 does for Pages.
 - **Standards.** The standards say no network calls to external services and no backend. This design sends nothing off the machine and adds nothing to the app, so it fits their intent. The collector does call the GitHub API, which is the same call `capture-metrics` and the `gh` CLI already make. Flagged so the product owner can confirm that reading.
 - **Default Grafana login.** A fresh Grafana OSS uses a well-known admin password. Bound to localhost it is not exposed to the network, but the setup should still change it, and the compose file must never publish the port more widely.
 - **Duplicate handling is unproven.** Whether resending a row is a safe no-op depends on how Loki treats an identical entry, and it is a design assumption, not a checked fact. The plan must test it before relying on it.

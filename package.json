@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.e2e.json",
     "test:e2e": "playwright test",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build && npm run check:offline && npm run test:e2e",
-    "check:offline": "node scripts/check-offline.mjs"
+    "check:offline": "node scripts/check-offline.mjs",
+    "metrics:up": "docker compose -f grafana/compose.yaml up -d",
+    "metrics:down": "docker compose -f grafana/compose.yaml down",
+    "metrics:collect": "node scripts/collect-metrics.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

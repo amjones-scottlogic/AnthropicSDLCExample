@@ -1,0 +1,784 @@
+{
+  "uid": "ai-sdlc-metrics",
+  "title": "AI-SDLC metrics",
+  "tags": [
+    "ai-sdlc"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "metric",
+        "label": "Metric",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "label": "metric",
+          "stream": "{job=\"ai-sdlc-metrics\"}",
+          "type": 1
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "stage",
+        "label": "Stage",
+        "type": "custom",
+        "query": "Plan,Design,Build,n/a",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "kind",
+        "label": "Kind",
+        "type": "custom",
+        "query": "leading,lagging",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+"
+      },
+      {
+        "name": "pr",
+        "label": "PR number (.+ for all)",
+        "type": "textbox",
+        "query": ".+",
+        "current": {
+          "text": ".+",
+          "value": ".+"
+        },
+        "options": [
+          {
+            "text": ".+",
+            "value": ".+",
+            "selected": true
+          }
+        ]
+      },
+      {
+        "name": "window",
+        "label": "Snapshots",
+        "type": "custom",
+        "query": "Latest per PR : 1825d,All snapshots : 1d",
+        "current": {
+          "text": "Latest per PR",
+          "value": "1825d"
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Last collector run",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"ai-sdlc-metrics-runs\"}",
+          "queryType": "range",
+          "legendFormat": "",
+          "maxLines": 1
+        }
+      ],
+      "description": "The most recent run of the collector. Nothing is scheduled: run npm run metrics:collect (with npm run metrics:up) to refresh the data.",
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Each metric over time",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 3,
+      "title": "Selected metrics over time (average across PRs)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=~\"$kind\", stage=~\".*$stage.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "row",
+      "title": "Plan: leading and lagging",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 5,
+      "title": "Plan: leading metrics",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"leading\", stage=~\".*Plan.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Plan: lagging metrics",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"lagging\", stage=~\".*Plan.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Design: leading and lagging",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "title": "Design: leading metrics",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"leading\", stage=~\".*Design.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "title": "Design: lagging metrics",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"lagging\", stage=~\".*Design.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Build: leading and lagging",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "title": "Build: leading metrics",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"leading\", stage=~\".*Build.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "Build: lagging metrics",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "avg by (metric) (last_over_time({job=\"ai-sdlc-metrics\", metric=~\"$metric\", metric!~\"Tokens|Skill invocations\", kind=\"lagging\", stage=~\".*Build.*\"} | json | value=~\".+\" | unwrap value [$window]) by (metric, pr_number, change, notes))",
+          "queryType": "range",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "One change",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 14,
+      "title": "Every row for the chosen PR (empty values shown, with notes)",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"ai-sdlc-metrics\"} | json | pr_number=~\"$pr\"",
+          "queryType": "range",
+          "legendFormat": ""
+        }
+      ],
+      "description": "Raw rows, grouped by stage. An empty value means nothing was captured; the notes say why.",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "labels": true,
+              "id": true,
+              "tsNs": true,
+              "stage_extracted": true,
+              "Time": true,
+              "kind_extracted": true,
+              "metric_extracted": true,
+              "job": true
+            },
+            "indexByName": {
+              "stage": 0,
+              "metric": 1,
+              "pr_number": 2,
+              "captured_at": 3,
+              "value": 4,
+              "unit": 5,
+              "notes": 6
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "stage"
+              },
+              {
+                "field": "captured_at",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Skill usage",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "title": "About these numbers",
+      "type": "text",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [],
+      "options": {
+        "mode": "markdown",
+        "content": "Only **repository skills** are counted. Counts are **by branch** and only from contributors who ran the capture, so they are **approximate**. A contributor with no captured session shows as missing, not as zero. Contributors' rows for one PR are added together."
+      }
+    },
+    {
+      "id": 17,
+      "title": "Skill invocations for the chosen PR",
+      "type": "barchart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (skill) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Skill invocations\"} | json | value=~\".+\" | regexp \"skill: (?P<skill>[^;]+)\" | skill!=\"\" | pr_number=~\"$pr\" | unwrap value [1825d]) by (skill, pr_number, notes))",
+          "queryType": "instant",
+          "legendFormat": "{{skill}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        },
+        "showValue": "always"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Skill invocations over time (total per skill)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 55,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (skill) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Skill invocations\"} | json | value=~\".+\" | regexp \"skill: (?P<skill>[^;]+)\" | skill!=\"\" | unwrap value [$window]) by (skill, pr_number, notes))",
+          "queryType": "range",
+          "legendFormat": "{{skill}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Token usage",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "title": "About these numbers",
+      "type": "text",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [],
+      "options": {
+        "mode": "markdown",
+        "content": "Token **counts** only; no cost is recorded. Counts are **by branch** and only from contributors who ran the capture, so they are **approximate**. Contributors' rows for one PR are added together per model and token type."
+      }
+    },
+    {
+      "id": 21,
+      "title": "Tokens for the chosen PR (by model and type)",
+      "type": "barchart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 67,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (series) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Tokens\"} | json | value=~\".+\" | regexp \"^[^;]*; (?P<model>[^;]+); (?P<type>input|output|cache read|cache write);\" | label_format series=\"{{.model}} {{.type}}\" | pr_number=~\"$pr\" | unwrap value [1825d]) by (series, pr_number, notes))",
+          "queryType": "instant",
+          "legendFormat": "{{series}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        },
+        "showValue": "always"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0
+        },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "Tokens over time (by model and type)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 67,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (series) (last_over_time({job=\"ai-sdlc-metrics\", metric=\"Tokens\"} | json | value=~\".+\" | regexp \"^[^;]*; (?P<model>[^;]+); (?P<type>input|output|cache read|cache write);\" | label_format series=\"{{.model}} {{.type}}\" | unwrap value [$window]) by (series, pr_number, notes))",
+          "queryType": "range",
+          "legendFormat": "{{series}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}
