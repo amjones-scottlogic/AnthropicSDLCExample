@@ -1,5 +1,5 @@
 # Spec: AI-SDLC metrics dashboard
-Intent: [intent/005-ai-sdlc-metrics-dashboard.md](../intent/005-ai-sdlc-metrics-dashboard.md). Status: draft.
+Intent: [intent/005-ai-sdlc-metrics-dashboard.md](../intent/005-ai-sdlc-metrics-dashboard.md). Status: approved.
 
 ## Summary
 A Grafana dashboard that shows the AI-SDLC metrics across every pull request in the project, so trends and stage comparisons can be seen without opening PRs one by one. Grafana OSS and Loki run on the user's own machine, started from files in the repo. A scheduled job on the same machine collects the `AI-SDLC metrics` comments from the PRs each evening and loads the rows into Loki. The dashboard, kept as code in the repo, shows each metric over time, metrics by stage, a drill-down into one change, leading against lagging metrics, and the skill and token data added by intent 008. It reads data only. It does not change how the metrics are captured, and it is not part of the published app.
