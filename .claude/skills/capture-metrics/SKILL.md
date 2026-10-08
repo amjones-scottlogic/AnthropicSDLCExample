@@ -41,8 +41,17 @@ Stage is the stage the PR touches: `intent/` is Plan, `spec/` is Design, `plan/`
 | Build | lagging | How often the merged diff still matches the committed plan | session | `plan-reviewer` verdict, passed with `--plan-match`. Empty until judged |
 | Build | lagging | How often Claude repeats a mistake already listed in `CLAUDE.md` | git | Lines added under "Common mistakes" in `CLAUDE.md` against `main` |
 | Build | lagging | Changes merged per week per engineer, read against rework rate | git | Merged PRs per author per ISO week, next to the review-round rows |
+| PR's stages | leading | Skill invocations | session | One row per repository skill used on the PR's branch, with the count. The skill is named in `notes`. A PR with sessions but no repository skill calls gets one row of 0 |
+| PR's stages | leading | Tokens | session | Input, output, cache read and cache write tokens on the PR's branch, one row per model and type. Dollar cost is not recorded |
 
-Session sources are the Claude Code transcripts in `~/.claude/projects/<project>/*.jsonl`. If they are missing, the rows are left empty with a note.
+Session sources are the Claude Code transcripts in `~/.claude/projects/<project>/*.jsonl`, plus each session's `<sessionId>/subagents/*.jsonl` for subagent activity. If they are missing, the rows are left empty with a note.
+
+## Skill and token rows
+
+- **Repository skills only.** A skill counts only if it has a folder with a `SKILL.md` under `.claude/skills/`. Personal, plugin and built-in skills are dropped when the transcript is read and never reach the comment.
+- **By branch.** Every transcript entry made on the PR's branch counts, with no cutoff at the first commit. Work in a session that never touched the branch is missed.
+- **Per contributor.** Transcripts are local, so each run records only the runner's own sessions. `notes` starts with the git author name. A run replaces its own rows and leaves other contributors' skill and token rows alone. A git author on the PR with no rows gets an empty row noting `no session data captured`, so a gap is not read as zero use.
+- **Counts and names only.** Nothing from a transcript but skill names, model names, token totals and the git author name is ever posted.
 
 ## Not yet capturable
 
