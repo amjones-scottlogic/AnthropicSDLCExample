@@ -24,10 +24,10 @@ Change:
 Not touched: `src/`, `capture.mjs`, CI workflow, `eslint.config.js` (does not lint `.mjs`), existing tests.
 
 ## Order of work
-1. **Collector core** (Req 1-4, 14): `rowsFromPr` (parse, add `pr_number`, `pr_state`, keep empty `value` as empty), `toLokiStream` (labels `stage`,`kind`,`metric`,`pr_state`; body JSON of every field; timestamp from `captured_at`), skip-and-report unparsable comments, count PRs with no comment. Tests first.
-2. **Loki client and dedupe** (Req 1, 4): `latestCapturedAt` query, send only newer rows, push via `fetch` to `http://127.0.0.1:3100`; unreachable Loki → message and non-zero exit. Tests with stubbed `fetch`.
+1. **Collector core** (Req 1-4, 14): `rowsFromPr` (parse, add `pr_number`, `pr_state`, keep empty `value` as empty), `toStreams` (labels `job`,`stage`,`kind`,`metric`; body JSON of every field plus `pr_number` and `pr_state`; timestamp from `captured_at`; each stream sent oldest first), skip-and-report unparsable comments, count PRs with no comment. Tests first.
+2. **Loki client and dedupe** (Req 1, 4): `existingKeys` reads back the row keys Loki holds, send only rows whose key is not there, push via `fetch` to `http://127.0.0.1:3100`; unreachable Loki → message and non-zero exit. Tests with stubbed `fetch`.
 3. **Stack** (Req 5, 6, 17): compose, Loki config, provisioning, npm `metrics:up`/`metrics:down`. Needs Docker Desktop installed first (manual).
-4. **Real-run proof of duplicate handling** (Req 4): load fixture rows, run the collector twice against real Loki, confirm no duplicates and that a refreshed comment adds only its new snapshot. If Loki does not dedupe identical entries, the collector's "send only newer than latest" filter is the guarantee; record the finding in the plan.
+4. **Real-run proof of duplicate handling** (Req 4): load fixture rows, run the collector twice against real Loki, confirm no duplicates and that a refreshed comment adds only its new snapshot. The collector's key check, not Loki, is the guarantee against duplicates; record what the real run showed in Deviations.
 5. **Dashboard JSON** (Req 7-16): variables metric/stage/kind/PR/all-snapshots; panels: metric over time (latest-per-PR default), by stage, leading vs lagging per stage, PR drill-down table (raw lines incl. empty values and notes), skill invocations (per PR and over time, contributors summed), tokens by model and type (per PR and over time, summed), approximation note text, "last loaded" stat. Queries `unwrap value` only where non-empty. Then dashboard test, then check against the running stack with fixture data.
 6. **Docs** (Req 1): `grafana/README.md`.
 7. **Verify**: `npm run verify`; manual look at the dashboard.
@@ -45,7 +45,7 @@ None. Steps 1-2 share one file; 3-5 depend on a running stack; the whole change 
 - No existing tests are changed. Done means `npm run verify` passes and the manual checks are reported.
 
 ## Risks
-- **Highest: Loki duplicate behaviour and "latest captured_at" watermark** (Req 4). A row arriving with an older `captured_at` than the watermark (another contributor's refresh) would be skipped. Contained by keying the watermark per PR (latest `captured_at` per `pr_number`) rather than globally, and proving it in step 4. Loki also rejects entries older than its accepted window unless `reject_old_samples` is relaxed; set it off in `loki-config.yaml` so historic `captured_at` timestamps load.
+- **Highest: duplicates and out-of-order rows in Loki** (Req 4). A watermark would skip an older row that arrives later (another contributor's refresh), so the collector matches on the full row identity instead (PR number, metric, change, notes, `captured_at`), and this is proven in step 4. Loki also rejects entries older than its accepted window; `reject_old_samples` is off in `loki-config.yaml`, and the real run showed the out-of-order window needed widening too (see Deviations).
 - Docker Desktop must be installed by the owner before steps 3-5 can run; WSL2/virtualisation may be needed.
 - `gh` rate and pagination across all PRs; use `--paginate` via existing `listComments`.
 - Comment-format coupling: shared parser, but a format change needs both updated.
@@ -55,13 +55,15 @@ None. Steps 1-2 share one file; 3-5 depend on a running stack; the whole change 
 ## Alternatives rejected
 - Native Grafana/Loki binaries: less repeatable; chosen against by the owner in favour of Docker.
 - Prometheus or SQL data source: needs an extra service; Loki handles timestamped events directly.
-- Global watermark: loses out-of-order refreshes; per-PR watermark used.
+- A watermark (global or per PR) of the latest `captured_at`: skips an older row that arrives later, such as another contributor's refresh; the full row key is checked instead.
 - Changing `capture.mjs`: not needed, the parser is already exported.
 
 ## Open questions
 None. The owner approved the spec as it stands: Loki, no cost figure, per-PR and over-time token/skill views only, earlier PRs as no rows and empty values as missing; Docker Desktop to be installed.
 
 ## Deviations
+The sections above were brought in line with these entries after review; where they differ, the entries below record why.
+
 2026-10-08:
 - **Duplicate check uses the full row identity, not a per-PR watermark.** The collector reads back every row Loki holds and skips any whose key (PR number, metric, change, notes, captured_at) already exists. This is exactly the spec identity, handles out-of-order refreshes, and does not rely on Loki dropping identical entries. Proven against a real Loki (see below): a second run sent 0 rows, and Loki held 83 lines with 83 distinct keys.
 - **`pr_state` is in the JSON body, not a stream label.** It changes when a PR merges, which would put a resent row in a different stream. The spec listed it as a label.
