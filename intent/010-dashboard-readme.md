@@ -1,5 +1,5 @@
 # Intent: Document how to run the metrics dashboard in the README
-Author: Amy Laws (originator). Status: draft.
+Author: Amy Laws (originator). Status: accepted.
 
 ## Problem
 The metrics dashboard (intent 005) runs locally from files in the repo, but the only instructions for running it are in `grafana/README.md`. Someone reading the project README wouldn't know the dashboard exists or how to start it.
