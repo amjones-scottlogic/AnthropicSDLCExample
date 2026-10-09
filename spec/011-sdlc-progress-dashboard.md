@@ -15,7 +15,7 @@ A new group of panels on the existing AI-SDLC metrics dashboard shows where ever
    - only an intent exists: **awaiting spec**;
    - a spec exists and no plan: **awaiting plan**;
    - a plan exists and no `Build NNN` commit on `origin/main`: **in build**;
-   - a commit on `origin/main` whose subject starts `Build NNN`, or starts `Build` and ends `(spec NNN)` (the form used before the `Build NNN` convention, for items 001 and 003): **built**.
+   - a first-parent commit on `origin/main` that is the build of NNN: **built**. A commit is the build of NNN if its subject starts `Build NNN`, or starts `Build` and ends `(spec NNN)`, or is `Merge pull request #N from <owner>/build/NNN-...` (the forms used before the `Build NNN` convention, for items 001, 003, 004 and 007).
 4. **Time in stage.** `stage_since` is the date of the first commit on `origin/main` that put the item in its current stage: the one that added its intent, spec or plan file, or the `Build NNN` commit itself. The dashboard shows how long the item has been there, so the oldest waiting items are easy to pick out.
 5. **Current stage table.** A panel lists every item with its slug, stage, time in stage and the Status of its intent, spec and plan. It defaults to items not yet built, with a control to include built items. Rows are coloured by stage.
 6. **Latest snapshot only.** Each run loads a new snapshot. The panel shows the latest one, so a repeat run duplicates nothing visible and an item that moves stage shows its new stage.
@@ -31,7 +31,7 @@ A new group of panels on the existing AI-SDLC metrics dashboard shows where ever
 - **Getting data in.** Each row is one JSON log line pushed under its own job label (`ai-sdlc-stages`), so it never mixes with the metrics rows. The line's timestamp is the run time and the body holds `run_id`, `main_commit` and the row fields. `stage` is the only label, as it is low-cardinality. Everything else is read with `| json`.
 - **Latest snapshot.** Queries take the rows of the newest `run_id` only. Older snapshots stay in Loki, which lets stage counts over time be added later without re-collecting.
 - **Dashboard.** A new row of panels on the existing dashboard: the stage table, a count of items per stage, and an age-of-data stat. Time in stage is computed from `stage_since` by Grafana, so it keeps counting between runs.
-- **Where "built" comes from.** The `Build NNN` rule from the intent, plus the `Build ... (spec NNN)` form so items 001 and 003 count as built (product owner's decision). It lives in one place, `classify`.
+- **Where "built" comes from.** The `Build NNN` rule from the intent, plus the `Build ... (spec NNN)` and `Merge pull request ... from <owner>/build/NNN-...` forms so older items 001, 003, 004 and 007 count as built (product owner's decisions). It lives in one place, `classify`.
 - **Not in the app.** No `src/` code, no Vite build change, no CI or Pages change. The additions are the script and its tests in `scripts/`, the dashboard JSON, and updates to `grafana/README.md` (including that `metrics:collect` now needs `git` as well as `gh`) and the README's dashboard section if it describes the command.
 
 ## Testing

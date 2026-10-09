@@ -58,7 +58,7 @@ export function toStreams(rows) {
   return [...streams.values()]
 }
 
-async function lokiFetch(fetchFn, url, init) {
+export async function lokiFetch(fetchFn, url, init) {
   let res
   try {
     res = await fetchFn(url, init)
@@ -96,7 +96,7 @@ export async function existingKeys(fetchFn, lokiUrl, nowNs) {
   }
 }
 
-async function push(fetchFn, lokiUrl, streams) {
+export async function push(fetchFn, lokiUrl, streams) {
   if (streams.length === 0) return
   await lokiFetch(fetchFn, `${lokiUrl}/loki/api/v1/push`, {
     method: 'POST',
