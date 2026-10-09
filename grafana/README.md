@@ -6,7 +6,7 @@ machine only. Nothing here is part of the published app. Spec: [spec/005](../spe
 ## One-off setup (by hand)
 
 1. Install Docker Desktop and start it.
-2. `gh auth login`. The collector uses your own login to read PR comments.
+2. `gh auth login`. The collector uses your own login to read PR comments. It also needs `git` and a reachable `origin`, to read the SDLC stages.
 3. Optional: put `GRAFANA_ADMIN_PASSWORD=<something>` in `grafana/.env` (git-ignored). Otherwise sign in at
    <http://127.0.0.1:3000> as `admin` / `admin` and change the password when asked. Do this before anything else.
 
@@ -19,7 +19,7 @@ was last run.
 | --- | --- |
 | `npm run metrics:up` | start Grafana and Loki, with the dashboard loaded |
 | `npm run metrics:down` | stop them; data is kept in Docker volumes |
-| `npm run metrics:collect` | collect now (Loki must be up) |
+| `npm run metrics:collect` | collect now (Loki must be up): the PR metrics from GitHub, and the SDLC stages from `origin/main` |
 
 Open <http://127.0.0.1:3000> and the **AI-SDLC metrics** dashboard. Both ports are bound to `127.0.0.1`; never widen them.
 
@@ -37,3 +37,22 @@ Open <http://127.0.0.1:3000> and the **AI-SDLC metrics** dashboard. Both ports a
 - A PR's open/merged state is recorded when the row is first loaded and is not updated on older rows.
 - Only repository skills are counted, by branch and only from contributors who ran the capture. Treat as approximate.
 - If the data volume is lost, run `npm run metrics:collect` again: every PR comment is re-read.
+
+## SDLC progress
+
+The top of the dashboard shows where every intent, spec and plan sits, read from `origin/main` (never your working tree,
+so local branches change nothing). `npm run metrics:collect` runs `git fetch origin main` first, then loads one snapshot.
+Spec: [spec/011](../spec/011-sdlc-progress-dashboard.md).
+
+- **Stages.** An item is the `NNN` prefix shared by `intent/`, `spec/` and `plan/`. Only an intent: *awaiting spec*. A spec
+  and no plan: *awaiting plan*. A plan and no build: *in build*. A build commit on `main`: *built*. A commit is the build of
+  NNN if its subject starts `Build NNN`, or starts `Build` and ends `(spec NNN)`, or is `Merge pull request #N from
+  <owner>/build/NNN-...`.
+- **Time in stage** is counted from the date the file (or build commit) first landed on `main`, shown as "x days ago".
+- **The table** shows the newest snapshot only. Built items are hidden until you add `built` to the **Stages (SDLC items)**
+  selector. The status columns are the first `Status:` word in each file.
+- **Abandoned work looks like work in progress.** A plan that never gets a build stays *in build*; the time in stage is the
+  clue.
+- If the fetch fails, or Loki is down, that half of the run reports it and the run exits non-zero. The PR metrics still load
+  if only the stages failed, and the other way round. A file in those folders whose name does not start `NNN-` is listed in
+  the run output and left out.
