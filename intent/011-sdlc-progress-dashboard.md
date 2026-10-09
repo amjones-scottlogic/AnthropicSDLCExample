@@ -1,5 +1,5 @@
 # Intent: SDLC progress in the Grafana dashboard
-Author: Amy Laws. Status: draft.
+Author: Amy Laws. Status: accepted.
 
 ## Problem
 I can't see at a glance which intents, specs and plans are still in progress. I have to open the `intent/`, `spec/` and `plan/` folders and compare them against the merged builds by hand. The Grafana dashboard shows the AI-SDLC metrics (intent 005) but nothing about where each piece of work currently sits in the SDLC.
