@@ -1,5 +1,5 @@
 # Spec: SDLC progress in the Grafana dashboard
-Intent: [intent/011-sdlc-progress-dashboard.md](../intent/011-sdlc-progress-dashboard.md). Status: draft.
+Intent: [intent/011-sdlc-progress-dashboard.md](../intent/011-sdlc-progress-dashboard.md). Status: approved.
 
 ## Summary
 A new group of panels on the existing AI-SDLC metrics dashboard shows where every intent, spec and plan currently sits in the SDLC, and how long each item has been there, so stalled work stands out. The stages are worked out from what is merged to `origin/main`. The existing command, `npm run metrics:collect`, run by hand, also reads the repo and loads one snapshot of the stages into the same local Loki as the PR metrics. Nothing is scheduled, nothing changes in the app, and nothing leaves the machine except the `git fetch` of `origin`.
@@ -15,7 +15,7 @@ A new group of panels on the existing AI-SDLC metrics dashboard shows where ever
    - only an intent exists: **awaiting spec**;
    - a spec exists and no plan: **awaiting plan**;
    - a plan exists and no `Build NNN` commit on `origin/main`: **in build**;
-   - a commit on `origin/main` whose subject starts `Build NNN`: **built**.
+   - a commit on `origin/main` whose subject starts `Build NNN`, or starts `Build` and ends `(spec NNN)` (the form used before the `Build NNN` convention, for items 001 and 003): **built**.
 4. **Time in stage.** `stage_since` is the date of the first commit on `origin/main` that put the item in its current stage: the one that added its intent, spec or plan file, or the `Build NNN` commit itself. The dashboard shows how long the item has been there, so the oldest waiting items are easy to pick out.
 5. **Current stage table.** A panel lists every item with its slug, stage, time in stage and the Status of its intent, spec and plan. It defaults to items not yet built, with a control to include built items. Rows are coloured by stage.
 6. **Latest snapshot only.** Each run loads a new snapshot. The panel shows the latest one, so a repeat run duplicates nothing visible and an item that moves stage shows its new stage.
@@ -31,12 +31,12 @@ A new group of panels on the existing AI-SDLC metrics dashboard shows where ever
 - **Getting data in.** Each row is one JSON log line pushed under its own job label (`ai-sdlc-stages`), so it never mixes with the metrics rows. The line's timestamp is the run time and the body holds `run_id`, `main_commit` and the row fields. `stage` is the only label, as it is low-cardinality. Everything else is read with `| json`.
 - **Latest snapshot.** Queries take the rows of the newest `run_id` only. Older snapshots stay in Loki, which lets stage counts over time be added later without re-collecting.
 - **Dashboard.** A new row of panels on the existing dashboard: the stage table, a count of items per stage, and an age-of-data stat. Time in stage is computed from `stage_since` by Grafana, so it keeps counting between runs.
-- **Where "built" comes from.** The `Build NNN` rule is exactly the one in the intent. It lives in one place, `classify`, so changing it (see Open questions) is a one-line change.
+- **Where "built" comes from.** The `Build NNN` rule from the intent, plus the `Build ... (spec NNN)` form so items 001 and 003 count as built (product owner's decision). It lives in one place, `classify`.
 - **Not in the app.** No `src/` code, no Vite build change, no CI or Pages change. The additions are the script and its tests in `scripts/`, the dashboard JSON, and updates to `grafana/README.md` (including that `metrics:collect` now needs `git` as well as `gh`) and the README's dashboard section if it describes the command.
 
 ## Testing
 
-- `classify`, against fixture lists: each stage rule; a spec with no intent file; a plan with several `Status:` lines (the first is used); a missing `Status:` shown as empty; `Build NNN` for an item with a plan and for one without.
+- `classify`, against fixture lists: each stage rule; a spec with no intent file; a plan with several `Status:` lines (the first is used); a missing `Status:` shown as empty; `Build NNN` for an item with a plan and for one without; the `(spec NNN)` form for 001 and 003.
 - Dates: a fixture history gives the expected `stage_since` for each stage.
 - Failures: an unreachable Loki and a failed `git fetch` each exit non-zero with a message that names the cause.
 - Dashboard JSON: valid, and every new query refers to fields the collector sends. Checked against the running stack with fixture data loaded, as for the metrics panels.
@@ -53,7 +53,7 @@ A new group of panels on the existing AI-SDLC metrics dashboard shows where ever
 
 ## Open questions
 
-- **Older builds.** Items 001 and 003 were built under commits titled `Build the todo tracker (spec 001)` and `Build infrastructure: ... (spec 003)`, which do not start `Build NNN`. With the rule as written they show as in build. Recommended: also accept a subject that starts `Build` and ends `(spec NNN)`. That changes the intent's rule, so it needs the product owner's decision. The alternative is to accept two wrong rows.
+None.
 
 ## Flagged concerns
 
