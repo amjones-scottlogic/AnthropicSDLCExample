@@ -91,6 +91,48 @@
           "value": "1825d"
         },
         "options": []
+      },
+      {
+        "name": "sdlc_stage",
+        "label": "Stages (SDLC items)",
+        "type": "custom",
+        "multi": true,
+        "includeAll": false,
+        "query": "awaiting-spec,awaiting-plan,in-build,built",
+        "current": {
+          "text": [
+            "awaiting-spec",
+            "awaiting-plan",
+            "in-build"
+          ],
+          "value": [
+            "awaiting-spec",
+            "awaiting-plan",
+            "in-build"
+          ]
+        },
+        "options": [
+          {
+            "text": "awaiting-spec",
+            "value": "awaiting-spec",
+            "selected": true
+          },
+          {
+            "text": "awaiting-plan",
+            "value": "awaiting-plan",
+            "selected": true
+          },
+          {
+            "text": "in-build",
+            "value": "in-build",
+            "selected": true
+          },
+          {
+            "text": "built",
+            "value": "built",
+            "selected": false
+          }
+        ]
       }
     ]
   },
@@ -130,13 +172,363 @@
       }
     },
     {
+      "id": 23,
+      "type": "row",
+      "title": "SDLC progress",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 24,
+      "title": "SDLC stages last loaded",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 3
+      },
+      "timeFrom": "1y",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"ai-sdlc-stages\"}",
+          "queryType": "range",
+          "legendFormat": "",
+          "maxLines": 1
+        }
+      ],
+      "description": "The newest SDLC stages snapshot: its time, and main_commit, the origin/main commit it was read from. Nothing is scheduled: run npm run metrics:collect (with npm run metrics:up) to refresh.",
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 25,
+      "title": "SDLC items (latest snapshot)",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 16,
+        "h": 10
+      },
+      "timeFrom": "1y",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"ai-sdlc-stages\", stage=~\"$sdlc_stage\"}",
+          "queryType": "range",
+          "legendFormat": ""
+        }
+      ],
+      "description": "One row per intent, spec and plan number, from the newest snapshot. Stage is worked out from what is merged to origin/main. Use the Stages selector to include built items.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "awaiting-spec": {
+                        "text": "awaiting spec",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "awaiting-plan": {
+                        "text": "awaiting plan",
+                        "color": "yellow",
+                        "index": 1
+                      },
+                      "in-build": {
+                        "text": "in build",
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "built": {
+                        "text": "built",
+                        "color": "green",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "in stage since"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json"
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "number": {
+                "operation": "groupby"
+              },
+              "slug": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              },
+              "stage": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              },
+              "stage_since": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              },
+              "intent_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              },
+              "spec_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              },
+              "plan_status": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "stage_since (first)",
+                "destinationType": "time"
+              }
+            ],
+            "fields": {}
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "number": 0,
+              "slug (first)": 1,
+              "stage (first)": 2,
+              "stage_since (first)": 3,
+              "intent_status (first)": 4,
+              "spec_status (first)": 5,
+              "plan_status (first)": 6
+            },
+            "renameByName": {
+              "slug (first)": "slug",
+              "stage (first)": "stage",
+              "stage_since (first)": "in stage since",
+              "intent_status (first)": "intent",
+              "spec_status (first)": "spec",
+              "plan_status (first)": "plan"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "number"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "title": "SDLC items per stage (latest snapshot)",
+      "type": "barchart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 7,
+        "w": 8,
+        "h": 10
+      },
+      "timeFrom": "1y",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"ai-sdlc-stages\"}",
+          "queryType": "range",
+          "legendFormat": ""
+        }
+      ],
+      "description": "How many items sit in each stage in the newest snapshot, built items included.",
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json"
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Time",
+                "desc": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "number": {
+                "operation": "groupby"
+              },
+              "stage": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "first"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "stage (first)": {
+                "operation": "groupby"
+              },
+              "number": {
+                "operation": "aggregate",
+                "aggregations": [
+                  "count"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "stage (first)": "stage",
+              "number (count)": "items"
+            }
+          }
+        }
+      ]
+    },
+    {
       "id": 2,
       "type": "row",
       "title": "Each metric over time",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 3,
+        "y": 17,
         "w": 24,
         "h": 1
       },
@@ -152,7 +544,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 18,
         "w": 24,
         "h": 9
       },
@@ -185,7 +577,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 27,
         "w": 24,
         "h": 1
       },
@@ -201,7 +593,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 28,
         "w": 12,
         "h": 8
       },
@@ -237,7 +629,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 14,
+        "y": 28,
         "w": 12,
         "h": 8
       },
@@ -270,7 +662,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 22,
+        "y": 36,
         "w": 24,
         "h": 1
       },
@@ -286,7 +678,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 37,
         "w": 12,
         "h": 8
       },
@@ -322,7 +714,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 23,
+        "y": 37,
         "w": 12,
         "h": 8
       },
@@ -355,7 +747,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 31,
+        "y": 45,
         "w": 24,
         "h": 1
       },
@@ -371,7 +763,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 46,
         "w": 12,
         "h": 8
       },
@@ -407,7 +799,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 32,
+        "y": 46,
         "w": 12,
         "h": 8
       },
@@ -440,7 +832,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 40,
+        "y": 54,
         "w": 24,
         "h": 1
       },
@@ -456,7 +848,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 55,
         "w": 24,
         "h": 10
       },
@@ -529,7 +921,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 51,
+        "y": 65,
         "w": 24,
         "h": 1
       },
@@ -545,7 +937,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 52,
+        "y": 66,
         "w": 24,
         "h": 3
       },
@@ -565,7 +957,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 55,
+        "y": 69,
         "w": 12,
         "h": 8
       },
@@ -625,7 +1017,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 55,
+        "y": 69,
         "w": 12,
         "h": 8
       },
@@ -658,7 +1050,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 63,
+        "y": 77,
         "w": 24,
         "h": 1
       },
@@ -674,7 +1066,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 64,
+        "y": 78,
         "w": 24,
         "h": 3
       },
@@ -694,7 +1086,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 67,
+        "y": 81,
         "w": 12,
         "h": 8
       },
@@ -754,7 +1146,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 67,
+        "y": 81,
         "w": 12,
         "h": 8
       },

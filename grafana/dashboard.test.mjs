@@ -15,7 +15,16 @@ const BODY_FIELDS = [...FIELDS, 'pr_number', 'pr_state']
 const DERIVED = ['skill', 'model', 'type', 'series']
 const KNOWN = new Set([...STREAM_LABELS, ...BODY_FIELDS, ...DERIVED])
 
-const targets = dashboard.panels.flatMap((p) => (p.targets ?? []).map((t) => ({ panel: p.title, expr: t.expr })))
+// What the SDLC stages collector sends (job ai-sdlc-stages): the `stage` label, plus the JSON body of each item.
+const STAGE_LABELS = ['job', 'stage']
+const STAGE_FIELDS = ['number', 'slug', 'stage', 'stage_since', 'intent_status', 'spec_status', 'plan_status', 'run_id', 'main_commit']
+const STAGE_KNOWN = new Set([...STAGE_LABELS, ...STAGE_FIELDS])
+const STAGE_VALUES = ['awaiting-spec', 'awaiting-plan', 'in-build', 'built']
+
+const allTargets = dashboard.panels.flatMap((p) => (p.targets ?? []).map((t) => ({ panel: p.title, expr: t.expr })))
+const isStages = (t) => t.expr.includes('job="ai-sdlc-stages"')
+const targets = allTargets.filter((t) => !isStages(t))
+const stageTargets = allTargets.filter(isStages)
 
 describe('dashboard definition', () => {
   it('is a provisionable dashboard with a stable uid', () => {
@@ -56,6 +65,33 @@ describe('dashboard definition', () => {
       if (/unwrap\s+(\w+)/.test(expr)) used.add(/unwrap\s+(\w+)/.exec(expr)[1])
       for (const name of used) expect(KNOWN.has(name), `${panel}: unknown field "${name}"`).toBe(true)
       expect(expr, panel).toMatch(/job="ai-sdlc-metrics(-runs)?"/)
+    }
+  })
+
+  it('has the SDLC progress panels, queried only on fields the stages collector sends', () => {
+    const titles = dashboard.panels.map((p) => p.title)
+    for (const title of ['SDLC stages last loaded', 'SDLC items (latest snapshot)', 'SDLC items per stage (latest snapshot)']) {
+      expect(titles).toContain(title)
+    }
+    expect(stageTargets.length).toBe(3)
+    for (const { panel, expr } of stageTargets) {
+      const used = new Set()
+      for (const m of expr.matchAll(/(\w+)\s*(?:=~|!=|!~|=)\s*"/g)) used.add(m[1])
+      for (const name of used) expect(STAGE_KNOWN.has(name), `${panel}: unknown field "${name}"`).toBe(true)
+    }
+  })
+
+  it('offers every stage in the SDLC selector, with built hidden by default', () => {
+    const v = dashboard.templating.list.find((x) => x.name === 'sdlc_stage')
+    expect(v.multi).toBe(true)
+    expect(v.query.split(',')).toEqual(STAGE_VALUES)
+    expect(v.current.value).toEqual(STAGE_VALUES.filter((s) => s !== 'built'))
+  })
+
+  it('reads the newest snapshot of each item, not every snapshot', () => {
+    const ops = (title) => dashboard.panels.find((p) => p.title === title).transformations.map((t) => t.id)
+    for (const title of ['SDLC items (latest snapshot)', 'SDLC items per stage (latest snapshot)']) {
+      expect(ops(title).slice(0, 3), title).toEqual(['extractFields', 'sortBy', 'groupBy'])
     }
   })
 
